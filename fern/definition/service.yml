@@ -1,20 +1,18 @@
 imports:
   common: ./common.yml
 types:
-  ServicePort:
-    properties:
-      name: string
-      protocol: common.ProtocolTypes
-      port: integer
-      targetPort: string
   Service: 
     properties:
       name: string
       namespace: string
       type: string
-      managedBy: string
-      ports: list<ServicePort>
+      managedBy: optional<string>
+      pods: optional<list<string>>
+      annotations: optional<map<string, string>>
+      labels: optional<map<string, string>>
+      selectors: optional<map<string, string>>
   ServiceReport:
     properties:
       services: optional<list<Service>>
+      clusterUrl: optional<string>
       errors: optional<list<string>>

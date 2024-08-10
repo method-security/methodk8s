@@ -3,11 +3,11 @@ imports:
 types:
   StatusTypes:
     enum:
-      - PENDING
-      - RUNNING
-      - SUCCEEDED
-      - FAILED
-      - UNKNOWN
+      - Pending
+      - Running
+      - Succeeded
+      - Failed
+      - Unknown
   Status:
     properties:
       status: StatusTypes
@@ -37,6 +37,8 @@ types:
       node: string
       status: optional<Status>
       containers: list<Container>
+      labels: optional<map<string, string>>
+      annotations: optional<map<string, string>>
   PodReport:
     properties:
       pods: optional<list<Pod>>

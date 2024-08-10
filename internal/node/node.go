@@ -65,8 +65,8 @@ func EnumerateNodes(ctx context.Context, k8config *rest.Config) (*methodk8s.Node
 func whatState(node *corev1.Node) (methodk8s.StateTypes, error) {
 	for _, condition := range node.Status.Conditions {
 		if condition.Type == corev1.NodeReady {
-			return methodk8s.NewStateTypesFromString("RUNNING")
+			return methodk8s.NewStateTypesFromString("Running")
 		}
 	}
-	return methodk8s.NewStateTypesFromString("STOPPED")
+	return methodk8s.NewStateTypesFromString("Stopped")
 }

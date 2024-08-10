@@ -2,6 +2,7 @@ package ingress
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	methodk8s "github.com/method-security/methodk8s/generated/go"
@@ -14,88 +15,94 @@ import (
 func EnumerateIngresses(ctx context.Context, k8config *rest.Config, types []string) (*methodk8s.IngressReport, error) {
 	resources := methodk8s.IngressReport{}
 	errors := []string{}
-	config := k8config
 
-	clientset, err := gatewayclientset.NewForConfig(config)
+	clientset, err := kubernetes.NewForConfig(k8config)
 	if err != nil {
-		errors = append(errors, err.Error())
+		return &methodk8s.IngressReport{Errors: errors}, err
+	}
+
+	gatewayClient, err := gatewayclientset.NewForConfig(k8config)
+	if err != nil {
 		return &methodk8s.IngressReport{Errors: errors}, err
 	}
 
 	gateways := []*methodk8s.Gateway{}
 	if contains(types, "gateway") || len(types) == 0 {
-		gatewayList, err := clientset.GatewayV1beta1().Gateways("").List(ctx, metav1.ListOptions{})
+		gatewayList, err := gatewayClient.GatewayV1beta1().Gateways("").List(ctx, metav1.ListOptions{})
 		if err != nil {
 			errors = append(errors, err.Error())
-			goto afterGateway
-		}
+		} else {
+			for _, gateway := range gatewayList.Items {
+				listeners := []string{}
+				for _, listener := range gateway.Spec.Listeners {
+					var gatewayURL string
 
-		for _, gateway := range gatewayList.Items {
-			listeners := []*methodk8s.Listener{}
-			for _, listener := range gateway.Spec.Listeners {
-				protocol, err := methodk8s.NewProtocolTypesFromString(string(listener.Protocol))
-
-				if err != nil {
-					errors = append(errors, err.Error())
-					protocol, _ = methodk8s.NewProtocolTypesFromString("UNKNOWN")
+					for _, gateAddress := range gateway.Status.Addresses {
+						address := gateAddress.Value
+						gatewayURL = fmt.Sprintf("%s:%d", address, listener.Port)
+						listeners = append(listeners, gatewayURL)
+					}
 				}
-				listenerInfo := methodk8s.Listener{
-					Name:     string(listener.Name),
-					Port:     int(listener.Port),
-					Protocol: protocol,
-				}
-				listeners = append(listeners, &listenerInfo)
-			}
 
-			gatewayInfo := methodk8s.Gateway{
-				Name:      gateway.GetName(),
-				Namespace: gateway.GetNamespace(),
-				Listeners: listeners,
+				gatewayInfo := &methodk8s.Gateway{
+					Name:        gateway.GetName(),
+					Namespace:   gateway.GetNamespace(),
+					Listeners:   listeners,
+					Annotations: gateway.GetAnnotations(),
+					Labels:      gateway.GetLabels(),
+				}
+				gateways = append(gateways, gatewayInfo)
 			}
-			gateways = append(gateways, &gatewayInfo)
 		}
 	}
-afterGateway:
+
 	ingresses := []*methodk8s.Ingress{}
 	if contains(types, "ingress") || len(types) == 0 {
-		clientset, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			errors = append(errors, err.Error())
-			return &methodk8s.IngressReport{Errors: errors}, err
-		}
 		ingressList, err := clientset.NetworkingV1().Ingresses("").List(ctx, metav1.ListOptions{})
 		if err != nil {
 			errors = append(errors, err.Error())
-			return &methodk8s.IngressReport{Errors: errors}, err
-		}
+		} else {
+			for _, ingress := range ingressList.Items {
+				rules := []*methodk8s.Rule{}
 
-		for _, ingress := range ingressList.Items {
-			rules := []*methodk8s.Rule{}
-			for _, rule := range ingress.Spec.Rules {
-				for _, path := range rule.HTTP.Paths {
-					ruleInfo := methodk8s.Rule{
-						Host:        rule.Host,
-						Path:        path.Path,
-						ServiceName: path.Backend.Service.Name,
-						ServicePort: int(path.Backend.Service.Port.Number),
+				// Extract Hosts and Paths
+				for _, rule := range ingress.Spec.Rules {
+					for _, path := range rule.HTTP.Paths {
+
+						var port *string
+						if path.Backend.Service != nil && path.Backend.Service.Port.Number != 0 {
+							portStr := fmt.Sprintf("%d", path.Backend.Service.Port.Number)
+							port = &portStr
+						} else {
+							port = nil
+						}
+						ruleInfo := methodk8s.Rule{
+							Host:        rule.Host,
+							Path:        path.Path,
+							ServiceName: path.Backend.Service.Name,
+							ServicePort: port,
+						}
+						rules = append(rules, &ruleInfo)
 					}
-					rules = append(rules, &ruleInfo)
 				}
-			}
 
-			ingressInfo := methodk8s.Ingress{
-				Name:      ingress.GetName(),
-				Namespace: ingress.GetNamespace(),
-				Rules:     rules,
+				ingressInfo := &methodk8s.Ingress{
+					Name:        ingress.GetName(),
+					Namespace:   ingress.GetNamespace(),
+					Rules:       rules,
+					Annotations: ingress.GetAnnotations(),
+					Labels:      ingress.GetLabels(),
+				}
+				ingresses = append(ingresses, ingressInfo)
 			}
-			ingresses = append(ingresses, &ingressInfo)
 		}
 	}
 
 	resources = methodk8s.IngressReport{
-		Gateways:  gateways,
-		Ingresses: ingresses,
-		Errors:    errors,
+		Gateways:   gateways,
+		Ingresses:  ingresses,
+		ClusterUrl: &k8config.Host,
+		Errors:     errors,
 	}
 
 	return &resources, nil

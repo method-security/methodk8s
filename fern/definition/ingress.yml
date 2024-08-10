@@ -6,25 +6,24 @@ types:
       host: string
       path: string
       serviceName: string
-      servicePort: integer
+      servicePort: optional<string>
   Ingress:
     properties:
       name: string
       namespace: string
-      rules: list<Rule>
-  Listener:
-    properties:
-      name: string
-      port: integer
-      protocol: common.ProtocolTypes
+      rules: optional<list<Rule>>
+      annotations: optional<map<string, string>>
+      labels: optional<map<string, string>>
   Gateway:
     properties:
       name: string
       namespace: string
-      instance: string
-      listeners: list<Listener>
+      listeners: list<string>
+      annotations: optional<map<string, string>>
+      labels: optional<map<string, string>>
   IngressReport:
     properties:
       gateways: optional<list<Gateway>>
       ingresses: optional<list<Ingress>>
-      Errors: optional<list<string>>
+      clusterUrl: optional<string>
+      errors: optional<list<string>>
