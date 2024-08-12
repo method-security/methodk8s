@@ -3,10 +3,9 @@ imports:
 types:
   Rule:
     properties:
-      host: string
       path: string
+      base: string
       serviceName: string
-      servicePort: optional<string>
   Ingress:
     properties:
       name: string
@@ -14,16 +13,28 @@ types:
       rules: optional<list<Rule>>
       annotations: optional<map<string, string>>
       labels: optional<map<string, string>>
+  Path:
+    properties:
+      path: string
+      base: string
+      port: optional<string>
+      serviceName: string
+      serviceNamespace: string
   Gateway:
     properties:
       name: string
       namespace: string
-      listeners: list<string>
+  HttpRoute:
+    properties:
+      name: string
+      namespace: string
       annotations: optional<map<string, string>>
       labels: optional<map<string, string>>
+      gateways: optional<list<Gateway>>
+      paths: optional<list<Path>>
   IngressReport:
     properties:
-      gateways: optional<list<Gateway>>
+      httpRoutes: optional<list<HttpRoute>>
       ingresses: optional<list<Ingress>>
       clusterUrl: optional<string>
       errors: optional<list<string>>
