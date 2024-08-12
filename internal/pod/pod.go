@@ -2,7 +2,6 @@ package pod
 
 import (
 	"context"
-	"strings"
 
 	methodk8s "github.com/method-security/methodk8s/generated/go"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -64,25 +63,28 @@ func EnumeratePods(ctx context.Context, k8config *rest.Config) (*methodk8s.PodRe
 			containers = append(containers, &containerInfo)
 		}
 
-		status, err := methodk8s.NewStatusTypesFromString(strings.ToUpper(string(pod.Status.Phase)))
+		status, err := methodk8s.NewStatusTypesFromString(string(pod.Status.Phase))
 		if err != nil {
 			errors = append(errors, err.Error())
-			status, _ = methodk8s.NewStatusTypesFromString("UNKNOWN")
+			status, _ = methodk8s.NewStatusTypesFromString("Unknown")
 		}
 		statusInfo := methodk8s.Status{
 			Status: status,
 			PodIp:  &pod.Status.PodIP,
 			HostIp: &pod.Status.HostIP,
 		}
+
 		version := pod.GetResourceVersion()
 		podInfo := methodk8s.Pod{
-			Uid:        string(pod.GetUID()),
-			Name:       pod.GetName(),
-			Namespace:  pod.GetNamespace(),
-			Version:    &version,
-			Status:     &statusInfo,
-			Node:       pod.Spec.NodeName,
-			Containers: containers,
+			Uid:         string(pod.GetUID()),
+			Name:        pod.GetName(),
+			Namespace:   pod.GetNamespace(),
+			Version:     &version,
+			Status:      &statusInfo,
+			Node:        pod.Spec.NodeName,
+			Containers:  containers,
+			Annotations: pod.Annotations,
+			Labels:      pod.Labels,
 		}
 		pods = append(pods, &podInfo)
 	}

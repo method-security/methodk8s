@@ -1,8 +1,8 @@
 types:
   StateTypes:
     enum:
-      - RUNNING
-      - STOPPED
+      - Running
+      - Stopped
   Address:
     properties:
       type: string

@@ -49,10 +49,11 @@ func (p ProtocolTypes) Ptr() *ProtocolTypes {
 }
 
 type Gateway struct {
-	Name      string      `json:"name" url:"name"`
-	Namespace string      `json:"namespace" url:"namespace"`
-	Instance  string      `json:"instance" url:"instance"`
-	Listeners []*Listener `json:"listeners,omitempty" url:"listeners,omitempty"`
+	Name        string            `json:"name" url:"name"`
+	Namespace   string            `json:"namespace" url:"namespace"`
+	Listeners   []string          `json:"listeners,omitempty" url:"listeners,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty" url:"annotations,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty" url:"labels,omitempty"`
 
 	extraProperties map[string]interface{}
 	_rawJSON        json.RawMessage
@@ -93,9 +94,11 @@ func (g *Gateway) String() string {
 }
 
 type Ingress struct {
-	Name      string  `json:"name" url:"name"`
-	Namespace string  `json:"namespace" url:"namespace"`
-	Rules     []*Rule `json:"rules,omitempty" url:"rules,omitempty"`
+	Name        string            `json:"name" url:"name"`
+	Namespace   string            `json:"namespace" url:"namespace"`
+	Rules       []*Rule           `json:"rules,omitempty" url:"rules,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty" url:"annotations,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty" url:"labels,omitempty"`
 
 	extraProperties map[string]interface{}
 	_rawJSON        json.RawMessage
@@ -136,9 +139,10 @@ func (i *Ingress) String() string {
 }
 
 type IngressReport struct {
-	Gateways  []*Gateway `json:"gateways,omitempty" url:"gateways,omitempty"`
-	Ingresses []*Ingress `json:"ingresses,omitempty" url:"ingresses,omitempty"`
-	Errors    []string   `json:"Errors,omitempty" url:"Errors,omitempty"`
+	Gateways   []*Gateway `json:"gateways,omitempty" url:"gateways,omitempty"`
+	Ingresses  []*Ingress `json:"ingresses,omitempty" url:"ingresses,omitempty"`
+	ClusterUrl *string    `json:"clusterUrl,omitempty" url:"clusterUrl,omitempty"`
+	Errors     []string   `json:"errors,omitempty" url:"errors,omitempty"`
 
 	extraProperties map[string]interface{}
 	_rawJSON        json.RawMessage
@@ -178,54 +182,11 @@ func (i *IngressReport) String() string {
 	return fmt.Sprintf("%#v", i)
 }
 
-type Listener struct {
-	Name     string        `json:"name" url:"name"`
-	Port     int           `json:"port" url:"port"`
-	Protocol ProtocolTypes `json:"protocol" url:"protocol"`
-
-	extraProperties map[string]interface{}
-	_rawJSON        json.RawMessage
-}
-
-func (l *Listener) GetExtraProperties() map[string]interface{} {
-	return l.extraProperties
-}
-
-func (l *Listener) UnmarshalJSON(data []byte) error {
-	type unmarshaler Listener
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*l = Listener(value)
-
-	extraProperties, err := core.ExtractExtraProperties(data, *l)
-	if err != nil {
-		return err
-	}
-	l.extraProperties = extraProperties
-
-	l._rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (l *Listener) String() string {
-	if len(l._rawJSON) > 0 {
-		if value, err := core.StringifyJSON(l._rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := core.StringifyJSON(l); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", l)
-}
-
 type Rule struct {
-	Host        string `json:"host" url:"host"`
-	Path        string `json:"path" url:"path"`
-	ServiceName string `json:"serviceName" url:"serviceName"`
-	ServicePort int    `json:"servicePort" url:"servicePort"`
+	Host        string  `json:"host" url:"host"`
+	Path        string  `json:"path" url:"path"`
+	ServiceName string  `json:"serviceName" url:"serviceName"`
+	ServicePort *string `json:"servicePort,omitempty" url:"servicePort,omitempty"`
 
 	extraProperties map[string]interface{}
 	_rawJSON        json.RawMessage
@@ -400,15 +361,15 @@ func (n *NodeReport) String() string {
 type StateTypes string
 
 const (
-	StateTypesRunning StateTypes = "RUNNING"
-	StateTypesStopped StateTypes = "STOPPED"
+	StateTypesRunning StateTypes = "Running"
+	StateTypesStopped StateTypes = "Stopped"
 )
 
 func NewStateTypesFromString(s string) (StateTypes, error) {
 	switch s {
-	case "RUNNING":
+	case "Running":
 		return StateTypesRunning, nil
-	case "STOPPED":
+	case "Stopped":
 		return StateTypesStopped, nil
 	}
 	var t StateTypes
@@ -506,13 +467,15 @@ func (c *ContainerPort) String() string {
 }
 
 type Pod struct {
-	Uid        string       `json:"uid" url:"uid"`
-	Name       string       `json:"name" url:"name"`
-	Namespace  string       `json:"namespace" url:"namespace"`
-	Version    *string      `json:"version,omitempty" url:"version,omitempty"`
-	Node       string       `json:"node" url:"node"`
-	Status     *Status      `json:"status,omitempty" url:"status,omitempty"`
-	Containers []*Container `json:"containers,omitempty" url:"containers,omitempty"`
+	Uid         string            `json:"uid" url:"uid"`
+	Name        string            `json:"name" url:"name"`
+	Namespace   string            `json:"namespace" url:"namespace"`
+	Version     *string           `json:"version,omitempty" url:"version,omitempty"`
+	Node        string            `json:"node" url:"node"`
+	Status      *Status           `json:"status,omitempty" url:"status,omitempty"`
+	Containers  []*Container      `json:"containers,omitempty" url:"containers,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty" url:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty" url:"annotations,omitempty"`
 
 	extraProperties map[string]interface{}
 	_rawJSON        json.RawMessage
@@ -684,24 +647,24 @@ func (s *Status) String() string {
 type StatusTypes string
 
 const (
-	StatusTypesPending   StatusTypes = "PENDING"
-	StatusTypesRunning   StatusTypes = "RUNNING"
-	StatusTypesSucceeded StatusTypes = "SUCCEEDED"
-	StatusTypesFailed    StatusTypes = "FAILED"
-	StatusTypesUnknown   StatusTypes = "UNKNOWN"
+	StatusTypesPending   StatusTypes = "Pending"
+	StatusTypesRunning   StatusTypes = "Running"
+	StatusTypesSucceeded StatusTypes = "Succeeded"
+	StatusTypesFailed    StatusTypes = "Failed"
+	StatusTypesUnknown   StatusTypes = "Unknown"
 )
 
 func NewStatusTypesFromString(s string) (StatusTypes, error) {
 	switch s {
-	case "PENDING":
+	case "Pending":
 		return StatusTypesPending, nil
-	case "RUNNING":
+	case "Running":
 		return StatusTypesRunning, nil
-	case "SUCCEEDED":
+	case "Succeeded":
 		return StatusTypesSucceeded, nil
-	case "FAILED":
+	case "Failed":
 		return StatusTypesFailed, nil
-	case "UNKNOWN":
+	case "Unknown":
 		return StatusTypesUnknown, nil
 	}
 	var t StatusTypes
@@ -713,11 +676,14 @@ func (s StatusTypes) Ptr() *StatusTypes {
 }
 
 type Service struct {
-	Name      string         `json:"name" url:"name"`
-	Namespace string         `json:"namespace" url:"namespace"`
-	Type      string         `json:"type" url:"type"`
-	ManagedBy string         `json:"managedBy" url:"managedBy"`
-	Ports     []*ServicePort `json:"ports,omitempty" url:"ports,omitempty"`
+	Name        string            `json:"name" url:"name"`
+	Namespace   string            `json:"namespace" url:"namespace"`
+	Type        string            `json:"type" url:"type"`
+	ManagedBy   *string           `json:"managedBy,omitempty" url:"managedBy,omitempty"`
+	Pods        []string          `json:"pods,omitempty" url:"pods,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty" url:"annotations,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty" url:"labels,omitempty"`
+	Selectors   map[string]string `json:"selectors,omitempty" url:"selectors,omitempty"`
 
 	extraProperties map[string]interface{}
 	_rawJSON        json.RawMessage
@@ -757,53 +723,10 @@ func (s *Service) String() string {
 	return fmt.Sprintf("%#v", s)
 }
 
-type ServicePort struct {
-	Name       string        `json:"name" url:"name"`
-	Protocol   ProtocolTypes `json:"protocol" url:"protocol"`
-	Port       int           `json:"port" url:"port"`
-	TargetPort string        `json:"targetPort" url:"targetPort"`
-
-	extraProperties map[string]interface{}
-	_rawJSON        json.RawMessage
-}
-
-func (s *ServicePort) GetExtraProperties() map[string]interface{} {
-	return s.extraProperties
-}
-
-func (s *ServicePort) UnmarshalJSON(data []byte) error {
-	type unmarshaler ServicePort
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*s = ServicePort(value)
-
-	extraProperties, err := core.ExtractExtraProperties(data, *s)
-	if err != nil {
-		return err
-	}
-	s.extraProperties = extraProperties
-
-	s._rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (s *ServicePort) String() string {
-	if len(s._rawJSON) > 0 {
-		if value, err := core.StringifyJSON(s._rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := core.StringifyJSON(s); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", s)
-}
-
 type ServiceReport struct {
-	Services []*Service `json:"services,omitempty" url:"services,omitempty"`
-	Errors   []string   `json:"errors,omitempty" url:"errors,omitempty"`
+	Services   []*Service `json:"services,omitempty" url:"services,omitempty"`
+	ClusterUrl *string    `json:"clusterUrl,omitempty" url:"clusterUrl,omitempty"`
+	Errors     []string   `json:"errors,omitempty" url:"errors,omitempty"`
 
 	extraProperties map[string]interface{}
 	_rawJSON        json.RawMessage

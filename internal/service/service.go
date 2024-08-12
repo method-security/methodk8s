@@ -27,37 +27,49 @@ func EnumerateServices(ctx context.Context, k8config *rest.Config) (*methodk8s.S
 
 	services := []*methodk8s.Service{}
 	for _, service := range servicesList.Items {
-		ports := []*methodk8s.ServicePort{}
-		for _, port := range service.Spec.Ports {
-			protocol, err := methodk8s.NewProtocolTypesFromString(string(port.Protocol))
-			if err != nil {
-				errors = append(errors, err.Error())
-				protocol, _ = methodk8s.NewProtocolTypesFromString("UNDEFINED")
-			}
-
-			portInfo := methodk8s.ServicePort{
-				Name:       port.Name,
-				Protocol:   protocol,
-				Port:       int(port.Port),
-				TargetPort: port.TargetPort.String(),
-			}
-			ports = append(ports, &portInfo)
+		// Get the related Pod UIDs
+		podUIDs, err := getPodUIDsForService(ctx, clientset, service.GetNamespace(), service.Spec.Selector)
+		if err != nil {
+			errors = append(errors, err.Error())
 		}
 
+		managedBy := service.GetAnnotations()["app.kubernetes.io/managed-by"]
 		serviceInfo := methodk8s.Service{
-			Name:      service.GetName(),
-			Namespace: service.GetNamespace(),
-			Type:      string(service.Spec.Type),
-			ManagedBy: service.GetLabels()["app.kubernetes.io/managed-by"],
-			Ports:     ports,
+			Name:        service.GetName(),
+			Namespace:   service.GetNamespace(),
+			Type:        string(service.Spec.Type),
+			ManagedBy:   &managedBy,
+			Pods:        podUIDs,
+			Annotations: service.Annotations,
+			Labels:      service.Labels,
+			Selectors:   service.Spec.Selector,
 		}
 		services = append(services, &serviceInfo)
 	}
 
 	resources = methodk8s.ServiceReport{
-		Services: services,
-		Errors:   errors,
+		Services:   services,
+		ClusterUrl: &config.Host,
+		Errors:     errors,
 	}
 
 	return &resources, nil
+}
+
+// getPodUIDsForService returns the UIDs of all pods related to the service based on the service's selectors
+func getPodUIDsForService(ctx context.Context, clientset *kubernetes.Clientset, namespace string, selectors map[string]string) ([]string, error) {
+	podUIDs := []string{}
+
+	// Convert selectors map to a label selector string
+	labelSelector := metav1.FormatLabelSelector(&metav1.LabelSelector{MatchLabels: selectors})
+	podsList, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, pod := range podsList.Items {
+		podUIDs = append(podUIDs, string(pod.UID))
+	}
+
+	return podUIDs, nil
 }
