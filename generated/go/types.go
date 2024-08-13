@@ -49,11 +49,8 @@ func (p ProtocolTypes) Ptr() *ProtocolTypes {
 }
 
 type Gateway struct {
-	Name        string            `json:"name" url:"name"`
-	Namespace   string            `json:"namespace" url:"namespace"`
-	Listeners   []string          `json:"listeners,omitempty" url:"listeners,omitempty"`
-	Annotations map[string]string `json:"annotations,omitempty" url:"annotations,omitempty"`
-	Labels      map[string]string `json:"labels,omitempty" url:"labels,omitempty"`
+	Name      string `json:"name" url:"name"`
+	Namespace string `json:"namespace" url:"namespace"`
 
 	extraProperties map[string]interface{}
 	_rawJSON        json.RawMessage
@@ -91,6 +88,52 @@ func (g *Gateway) String() string {
 		return value
 	}
 	return fmt.Sprintf("%#v", g)
+}
+
+type HttpRoute struct {
+	Name        string            `json:"name" url:"name"`
+	Namespace   string            `json:"namespace" url:"namespace"`
+	Annotations map[string]string `json:"annotations,omitempty" url:"annotations,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty" url:"labels,omitempty"`
+	Gateways    []*Gateway        `json:"gateways,omitempty" url:"gateways,omitempty"`
+	Paths       []*Path           `json:"paths,omitempty" url:"paths,omitempty"`
+
+	extraProperties map[string]interface{}
+	_rawJSON        json.RawMessage
+}
+
+func (h *HttpRoute) GetExtraProperties() map[string]interface{} {
+	return h.extraProperties
+}
+
+func (h *HttpRoute) UnmarshalJSON(data []byte) error {
+	type unmarshaler HttpRoute
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*h = HttpRoute(value)
+
+	extraProperties, err := core.ExtractExtraProperties(data, *h)
+	if err != nil {
+		return err
+	}
+	h.extraProperties = extraProperties
+
+	h._rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (h *HttpRoute) String() string {
+	if len(h._rawJSON) > 0 {
+		if value, err := core.StringifyJSON(h._rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := core.StringifyJSON(h); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", h)
 }
 
 type Ingress struct {
@@ -139,10 +182,10 @@ func (i *Ingress) String() string {
 }
 
 type IngressReport struct {
-	Gateways   []*Gateway `json:"gateways,omitempty" url:"gateways,omitempty"`
-	Ingresses  []*Ingress `json:"ingresses,omitempty" url:"ingresses,omitempty"`
-	ClusterUrl *string    `json:"clusterUrl,omitempty" url:"clusterUrl,omitempty"`
-	Errors     []string   `json:"errors,omitempty" url:"errors,omitempty"`
+	HttpRoutes []*HttpRoute `json:"httpRoutes,omitempty" url:"httpRoutes,omitempty"`
+	Ingresses  []*Ingress   `json:"ingresses,omitempty" url:"ingresses,omitempty"`
+	ClusterUrl *string      `json:"clusterUrl,omitempty" url:"clusterUrl,omitempty"`
+	Errors     []string     `json:"errors,omitempty" url:"errors,omitempty"`
 
 	extraProperties map[string]interface{}
 	_rawJSON        json.RawMessage
@@ -182,11 +225,55 @@ func (i *IngressReport) String() string {
 	return fmt.Sprintf("%#v", i)
 }
 
+type Path struct {
+	Path             string  `json:"path" url:"path"`
+	Base             string  `json:"base" url:"base"`
+	Port             *string `json:"port,omitempty" url:"port,omitempty"`
+	ServiceName      string  `json:"serviceName" url:"serviceName"`
+	ServiceNamespace string  `json:"serviceNamespace" url:"serviceNamespace"`
+
+	extraProperties map[string]interface{}
+	_rawJSON        json.RawMessage
+}
+
+func (p *Path) GetExtraProperties() map[string]interface{} {
+	return p.extraProperties
+}
+
+func (p *Path) UnmarshalJSON(data []byte) error {
+	type unmarshaler Path
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*p = Path(value)
+
+	extraProperties, err := core.ExtractExtraProperties(data, *p)
+	if err != nil {
+		return err
+	}
+	p.extraProperties = extraProperties
+
+	p._rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (p *Path) String() string {
+	if len(p._rawJSON) > 0 {
+		if value, err := core.StringifyJSON(p._rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := core.StringifyJSON(p); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", p)
+}
+
 type Rule struct {
-	Host        string  `json:"host" url:"host"`
-	Path        string  `json:"path" url:"path"`
-	ServiceName string  `json:"serviceName" url:"serviceName"`
-	ServicePort *string `json:"servicePort,omitempty" url:"servicePort,omitempty"`
+	Path        string `json:"path" url:"path"`
+	Base        string `json:"base" url:"base"`
+	ServiceName string `json:"serviceName" url:"serviceName"`
 
 	extraProperties map[string]interface{}
 	_rawJSON        json.RawMessage
