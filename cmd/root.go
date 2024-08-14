@@ -228,7 +228,7 @@ func CreateConfigFromServiceAccountCreds(tokenFlag string, caCertFlag string, ur
 		}
 	}
 
-	if caCert != nil {
+	if len(caCert) != 0 {
 		return &rest.Config{
 			Host: clusterURL,
 			TLSClientConfig: rest.TLSClientConfig{
