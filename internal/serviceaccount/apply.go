@@ -95,6 +95,16 @@ func getClusterRole() *rbacv1.ClusterRole {
 				Resources: []string{"jobs", "cronjobs"},
 				Verbs:     []string{"get", "list", "watch"},
 			},
+			{
+				APIGroups: []string{"networking.k8s.io"},
+				Resources: []string{"ingresses"},
+				Verbs:     []string{"get", "list", "watch"},
+			},
+			{
+				APIGroups: []string{"gateway.networking.k8s.io"},
+				Resources: []string{"gateways"},
+				Verbs:     []string{"get", "list", "watch"},
+			},
 		},
 	}
 	return clusterRole
