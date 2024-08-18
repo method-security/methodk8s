@@ -8,6 +8,37 @@ import (
 	core "github.com/method-security/methodk8s/generated/go/core"
 )
 
+type AuthTypes string
+
+const (
+	AuthTypesKubeconfig         AuthTypes = "KUBECONFIG"
+	AuthTypesTokenWithCaCert    AuthTypes = "TOKEN_WITH_CA_CERT"
+	AuthTypesTokenWithoutCaCert AuthTypes = "TOKEN_WITHOUT_CA_CERT"
+	AuthTypesUnauthenticated    AuthTypes = "UNAUTHENTICATED"
+	AuthTypesUnknown            AuthTypes = "UNKNOWN"
+)
+
+func NewAuthTypesFromString(s string) (AuthTypes, error) {
+	switch s {
+	case "KUBECONFIG":
+		return AuthTypesKubeconfig, nil
+	case "TOKEN_WITH_CA_CERT":
+		return AuthTypesTokenWithCaCert, nil
+	case "TOKEN_WITHOUT_CA_CERT":
+		return AuthTypesTokenWithoutCaCert, nil
+	case "UNAUTHENTICATED":
+		return AuthTypesUnauthenticated, nil
+	case "UNKNOWN":
+		return AuthTypesUnknown, nil
+	}
+	var t AuthTypes
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (a AuthTypes) Ptr() *AuthTypes {
+	return &a
+}
+
 type ProtocolTypes string
 
 const (
@@ -185,6 +216,7 @@ type IngressReport struct {
 	HttpRoutes []*HttpRoute `json:"httpRoutes,omitempty" url:"httpRoutes,omitempty"`
 	Ingresses  []*Ingress   `json:"ingresses,omitempty" url:"ingresses,omitempty"`
 	ClusterUrl *string      `json:"clusterUrl,omitempty" url:"clusterUrl,omitempty"`
+	AuthType   AuthTypes    `json:"authType" url:"authType"`
 	Errors     []string     `json:"errors,omitempty" url:"errors,omitempty"`
 
 	extraProperties map[string]interface{}
@@ -403,9 +435,10 @@ func (n *Node) String() string {
 }
 
 type NodeReport struct {
-	Nodes      []*Node  `json:"nodes,omitempty" url:"nodes,omitempty"`
-	ClusterUrl *string  `json:"clusterUrl,omitempty" url:"clusterUrl,omitempty"`
-	Errors     []string `json:"errors,omitempty" url:"errors,omitempty"`
+	Nodes      []*Node   `json:"nodes,omitempty" url:"nodes,omitempty"`
+	ClusterUrl *string   `json:"clusterUrl,omitempty" url:"clusterUrl,omitempty"`
+	AuthType   AuthTypes `json:"authType" url:"authType"`
+	Errors     []string  `json:"errors,omitempty" url:"errors,omitempty"`
 
 	extraProperties map[string]interface{}
 	_rawJSON        json.RawMessage
@@ -603,9 +636,10 @@ func (p *Pod) String() string {
 }
 
 type PodReport struct {
-	Pods       []*Pod   `json:"pods,omitempty" url:"pods,omitempty"`
-	ClusterUrl *string  `json:"clusterUrl,omitempty" url:"clusterUrl,omitempty"`
-	Errors     []string `json:"errors,omitempty" url:"errors,omitempty"`
+	Pods       []*Pod    `json:"pods,omitempty" url:"pods,omitempty"`
+	ClusterUrl *string   `json:"clusterUrl,omitempty" url:"clusterUrl,omitempty"`
+	AuthType   AuthTypes `json:"authType" url:"authType"`
+	Errors     []string  `json:"errors,omitempty" url:"errors,omitempty"`
 
 	extraProperties map[string]interface{}
 	_rawJSON        json.RawMessage
@@ -766,7 +800,6 @@ type Service struct {
 	Name        string            `json:"name" url:"name"`
 	Namespace   string            `json:"namespace" url:"namespace"`
 	Type        string            `json:"type" url:"type"`
-	ManagedBy   *string           `json:"managedBy,omitempty" url:"managedBy,omitempty"`
 	Pods        []string          `json:"pods,omitempty" url:"pods,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty" url:"annotations,omitempty"`
 	Labels      map[string]string `json:"labels,omitempty" url:"labels,omitempty"`
@@ -813,6 +846,7 @@ func (s *Service) String() string {
 type ServiceReport struct {
 	Services   []*Service `json:"services,omitempty" url:"services,omitempty"`
 	ClusterUrl *string    `json:"clusterUrl,omitempty" url:"clusterUrl,omitempty"`
+	AuthType   AuthTypes  `json:"authType" url:"authType"`
 	Errors     []string   `json:"errors,omitempty" url:"errors,omitempty"`
 
 	extraProperties map[string]interface{}

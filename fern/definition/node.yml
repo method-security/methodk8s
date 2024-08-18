@@ -1,3 +1,5 @@
+imports:
+  common: ./common.yml
 types:
   StateTypes:
     enum:
@@ -20,6 +22,7 @@ types:
     properties:
       nodes: optional<list<Node>>
       clusterUrl: optional<string>
+      authType: common.AuthTypes
       errors: optional<list<string>>
 
 

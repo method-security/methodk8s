@@ -9,6 +9,7 @@ import (
 
 	"github.com/Method-Security/pkg/signal"
 	"github.com/Method-Security/pkg/writer"
+	methodk8s "github.com/method-security/methodk8s/generated/go"
 	"github.com/method-security/methodk8s/internal/config"
 	"github.com/palantir/pkg/datetime"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
@@ -22,7 +23,8 @@ type MethodK8s struct {
 	RootFlags    config.RootFlags
 	OutputConfig writer.OutputConfig
 	OutputSignal signal.Signal
-	K8Config     *rest.Config
+	K8sConfig    *rest.Config
+	AuthType     methodk8s.AuthTypes
 	RootCmd      *cobra.Command
 }
 
@@ -45,7 +47,7 @@ func NewMethodK8s(version string) *MethodK8s {
 		},
 		OutputConfig: writer.NewOutputConfig(nil, writer.NewFormat(writer.SIGNAL)),
 		OutputSignal: signal.NewSignal(nil, datetime.DateTime(time.Now()), nil, 0, nil),
-		K8Config:     nil,
+		K8sConfig:    nil,
 	}
 	return &methodK8s
 }
@@ -78,11 +80,12 @@ func (a *MethodK8s) InitRootCommand() {
 			a.OutputConfig = writer.NewOutputConfig(outputFilePointer, format)
 			cmd.SetContext(svc1log.WithLogger(cmd.Context(), config.InitializeLogging(cmd, &a.RootFlags)))
 
-			k8Config, err := GetK8Config(a)
+			K8sConfig, AuthType, err := GetK8sConfig(a)
 			if err != nil {
 				return err
 			}
-			a.K8Config = k8Config
+			a.K8sConfig = K8sConfig
+			a.AuthType = AuthType
 
 			return nil
 		},
@@ -157,32 +160,40 @@ func validateOutputFormat(output string) (writer.Format, error) {
 	return writer.NewFormat(format), nil
 }
 
-// GetK8Config gets the k8s config object from the various auth mechanisms
-func GetK8Config(a *MethodK8s) (*rest.Config, error) {
+// GetK8sConfig gets the k8s config object from the various auth mechanisms
+func GetK8sConfig(a *MethodK8s) (*rest.Config, methodk8s.AuthTypes, error) {
+	unknownAuth, _ := methodk8s.NewAuthTypesFromString("UNKNOWN")
 	if a.RootFlags.ServiceAccountConfig.ServiceAccount {
-		k8Config, err := CreateConfigFromServiceAccountCreds(a.RootFlags.ServiceAccountConfig.Token, a.RootFlags.ServiceAccountConfig.CACert, a.RootFlags.KubeConfig.URL)
+		K8sConfig, err := CreateConfigFromServiceAccountCreds(a.RootFlags.ServiceAccountConfig.Token, a.RootFlags.ServiceAccountConfig.CACert, a.RootFlags.KubeConfig.URL)
 		if err != nil {
-			return nil, err
+			return nil, unknownAuth, err
 		}
-		return k8Config, nil
+		auth, _ := methodk8s.NewAuthTypesFromString("TOKEN_WITHOUT_CA_CERT")
+		if K8sConfig.CAData != nil {
+			auth, _ = methodk8s.NewAuthTypesFromString("TOKEN_WITH_CA_CERT")
+		}
+		return K8sConfig, auth, nil
 	} else if a.RootFlags.KubeConfig.Path != "" {
-		k8Config, err := CreateConfigFromPath(a.RootFlags.KubeConfig.Path, a.RootFlags.KubeConfig.Context)
+		K8sConfig, err := CreateConfigFromPath(a.RootFlags.KubeConfig.Path, a.RootFlags.KubeConfig.Context)
 		if err != nil {
-			return nil, err
+			return nil, unknownAuth, err
 		}
-		return k8Config, nil
+		auth, _ := methodk8s.NewAuthTypesFromString("KUBECONFIG")
+		return K8sConfig, auth, nil
 
 	} else if kubeEnv, exists := os.LookupEnv("KUBECONFIG"); exists && kubeEnv != "" {
-		k8Config, err := CreateConfigFromPath(os.Getenv("KUBECONFIG"), a.RootFlags.KubeConfig.Context)
+		K8sConfig, err := CreateConfigFromPath(os.Getenv("KUBECONFIG"), a.RootFlags.KubeConfig.Context)
 		if err != nil {
-			return nil, err
+			return nil, unknownAuth, err
 		}
-		return k8Config, nil
+		auth, _ := methodk8s.NewAuthTypesFromString("KUBECONFIG")
+		return K8sConfig, auth, nil
 
 	} else if a.RootFlags.KubeConfig.URL != "" {
-		k8ConfigURL := a.RootFlags.KubeConfig.URL
-		k8Config := CreateConfigFromURL(k8ConfigURL)
-		return k8Config, nil
+		K8sConfigURL := a.RootFlags.KubeConfig.URL
+		K8sConfig := CreateConfigFromURL(K8sConfigURL)
+		auth, _ := methodk8s.NewAuthTypesFromString("UNAUTHENTICATED")
+		return K8sConfig, auth, nil
 
 	}
 	err := errors.New("please provide either: " +
@@ -190,7 +201,7 @@ func GetK8Config(a *MethodK8s) (*rest.Config, error) {
 		"a path to a config file, " +
 		"assign $KUBECONFIG to a path to the config file, " +
 		"or provide a URL to the cluster")
-	return nil, err
+	return nil, unknownAuth, err
 }
 
 // CreateConfigFromServiceAccountCreds generates the k8s config object from a service account token, optional(ca cert), and cluster URL

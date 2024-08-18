@@ -41,7 +41,7 @@ func (a *MethodK8s) InitServiceAccountCommand() {
 				return
 			}
 
-			err = serviceaccount.PrintCredentials(cmd.Context(), a.K8Config, namespace, secretname)
+			err = serviceaccount.PrintCredentials(cmd.Context(), a.K8sConfig, namespace, secretname)
 			if err != nil {
 				errorMessage := err.Error()
 				a.OutputSignal.ErrorMessage = &errorMessage
@@ -71,7 +71,7 @@ func (a *MethodK8s) InitServiceAccountCommand() {
 				return
 			}
 
-			err = serviceaccount.Config(cmd.Context(), a.K8Config, run, namespace)
+			err = serviceaccount.Config(cmd.Context(), a.K8sConfig, run, namespace)
 			if err != nil {
 				errorMessage := err.Error()
 				a.OutputSignal.ErrorMessage = &errorMessage

@@ -10,10 +10,11 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func EnumerateNodes(ctx context.Context, k8config *rest.Config) (*methodk8s.NodeReport, error) {
+func EnumerateNodes(ctx context.Context, k8sconfig *rest.Config, authType methodk8s.AuthTypes) (*methodk8s.NodeReport, error) {
 	resources := methodk8s.NodeReport{}
 	errors := []string{}
-	config := k8config
+
+	config := k8sconfig
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
@@ -38,7 +39,7 @@ func EnumerateNodes(ctx context.Context, k8config *rest.Config) (*methodk8s.Node
 			addresses = append(addresses, &address)
 		}
 
-		instanceType := node.Labels["beta.kubernetes.io/instance-type"]
+		instanceType := node.Labels["node.kubernetes.io/instance-type"]
 		nodeState, _ := whatState(&node)
 
 		nodeInfo := methodk8s.Node{
@@ -56,6 +57,7 @@ func EnumerateNodes(ctx context.Context, k8config *rest.Config) (*methodk8s.Node
 	resources = methodk8s.NodeReport{
 		Nodes:      nodes,
 		ClusterUrl: &config.Host,
+		AuthType:   authType,
 		Errors:     errors,
 	}
 

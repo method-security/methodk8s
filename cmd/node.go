@@ -17,7 +17,7 @@ func (a *MethodK8s) InitNodeCommand() {
 		Short: "Enumerate Nodes",
 		Long:  `Enumerate Nodes`,
 		Run: func(cmd *cobra.Command, args []string) {
-			report, err := node.EnumerateNodes(cmd.Context(), a.K8Config)
+			report, err := node.EnumerateNodes(cmd.Context(), a.K8sConfig, a.AuthType)
 			if err != nil {
 				errorMessage := err.Error()
 				a.OutputSignal.ErrorMessage = &errorMessage

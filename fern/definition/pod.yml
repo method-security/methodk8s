@@ -43,4 +43,5 @@ types:
     properties:
       pods: optional<list<Pod>>
       clusterUrl: optional<string>
+      authType: common.AuthTypes
       errors: optional<list<string>>

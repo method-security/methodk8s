@@ -26,7 +26,7 @@ func (a *MethodK8s) InitIngressCommand() {
 				return
 			}
 
-			report, err := ingress.EnumerateIngresses(cmd.Context(), a.K8Config, types)
+			report, err := ingress.EnumerateIngresses(cmd.Context(), a.K8sConfig, a.AuthType, types)
 			if err != nil {
 				errorMessage := err.Error()
 				a.OutputSignal.ErrorMessage = &errorMessage

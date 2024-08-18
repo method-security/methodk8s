@@ -110,8 +110,8 @@ func getClusterRole() *rbacv1.ClusterRole {
 	return clusterRole
 }
 
-func Config(ctx context.Context, k8config *rest.Config, run bool, namespace string) error {
-	config := k8config
+func Config(ctx context.Context, k8sconfig *rest.Config, run bool, namespace string) error {
+	config := k8sconfig
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return err

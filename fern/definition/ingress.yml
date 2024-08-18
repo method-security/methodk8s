@@ -37,4 +37,5 @@ types:
       httpRoutes: optional<list<HttpRoute>>
       ingresses: optional<list<Ingress>>
       clusterUrl: optional<string>
+      authType: common.AuthTypes
       errors: optional<list<string>>

@@ -6,7 +6,6 @@ types:
       name: string
       namespace: string
       type: string
-      managedBy: optional<string>
       pods: optional<list<string>>
       annotations: optional<map<string, string>>
       labels: optional<map<string, string>>
@@ -15,4 +14,5 @@ types:
     properties:
       services: optional<list<Service>>
       clusterUrl: optional<string>
+      authType: common.AuthTypes
       errors: optional<list<string>>

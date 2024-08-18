@@ -1,11 +1,18 @@
 types:
   ProtocolTypes:
-      enum:
-        - HTTP
-        - HTTPS
-        - TCP
-        - TLS
-        - UDP
-        - TCP_UDP
-        - GENEVE
-        - UNDEFINED
+    enum:
+      - HTTP
+      - HTTPS
+      - TCP
+      - TLS
+      - UDP
+      - TCP_UDP
+      - GENEVE
+      - UNDEFINED
+  AuthTypes:
+    enum:
+      - KUBECONFIG
+      - TOKEN_WITH_CA_CERT
+      - TOKEN_WITHOUT_CA_CERT
+      - UNAUTHENTICATED
+      - UNKNOWN
