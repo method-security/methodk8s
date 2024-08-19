@@ -9,10 +9,11 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func EnumeratePods(ctx context.Context, k8config *rest.Config) (*methodk8s.PodReport, error) {
+func EnumeratePods(ctx context.Context, k8sconfig *rest.Config, authType methodk8s.AuthTypes) (*methodk8s.PodReport, error) {
 	resources := methodk8s.PodReport{}
 	errors := []string{}
-	config := k8config
+
+	config := k8sconfig
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
@@ -92,6 +93,7 @@ func EnumeratePods(ctx context.Context, k8config *rest.Config) (*methodk8s.PodRe
 	resources = methodk8s.PodReport{
 		Pods:       pods,
 		ClusterUrl: &config.Host,
+		AuthType:   authType,
 		Errors:     errors,
 	}
 

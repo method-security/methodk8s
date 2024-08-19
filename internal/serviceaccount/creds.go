@@ -10,9 +10,9 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func PrintCredentials(ctx context.Context, k8config *rest.Config, namespace string, secretname string) error {
+func PrintCredentials(ctx context.Context, k8sconfig *rest.Config, namespace string, secretname string) error {
 	// Create the Kubernetes clientset
-	clientset, err := kubernetes.NewForConfig(k8config)
+	clientset, err := kubernetes.NewForConfig(k8sconfig)
 	if err != nil {
 		return err
 	}
@@ -25,7 +25,7 @@ func PrintCredentials(ctx context.Context, k8config *rest.Config, namespace stri
 
 	token := base64.StdEncoding.EncodeToString(secret.Data["token"])
 	caCert := base64.StdEncoding.EncodeToString(secret.Data["ca.crt"])
-	apiServer := k8config.Host
+	apiServer := k8sconfig.Host
 
 	// Pretty print the results
 	fmt.Println("=================================")

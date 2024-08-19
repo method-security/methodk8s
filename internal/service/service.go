@@ -9,10 +9,11 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func EnumerateServices(ctx context.Context, k8config *rest.Config) (*methodk8s.ServiceReport, error) {
+func EnumerateServices(ctx context.Context, k8sconfig *rest.Config, authType methodk8s.AuthTypes) (*methodk8s.ServiceReport, error) {
 	resources := methodk8s.ServiceReport{}
 	errors := []string{}
-	config := k8config
+
+	config := k8sconfig
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
@@ -33,12 +34,10 @@ func EnumerateServices(ctx context.Context, k8config *rest.Config) (*methodk8s.S
 			errors = append(errors, err.Error())
 		}
 
-		managedBy := service.GetAnnotations()["app.kubernetes.io/managed-by"]
 		serviceInfo := methodk8s.Service{
 			Name:        service.GetName(),
 			Namespace:   service.GetNamespace(),
 			Type:        string(service.Spec.Type),
-			ManagedBy:   &managedBy,
 			Pods:        podUIDs,
 			Annotations: service.Annotations,
 			Labels:      service.Labels,
@@ -50,6 +49,7 @@ func EnumerateServices(ctx context.Context, k8config *rest.Config) (*methodk8s.S
 	resources = methodk8s.ServiceReport{
 		Services:   services,
 		ClusterUrl: &config.Host,
+		AuthType:   authType,
 		Errors:     errors,
 	}
 
