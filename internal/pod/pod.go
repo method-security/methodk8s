@@ -17,13 +17,13 @@ func EnumeratePods(ctx context.Context, k8sconfig *rest.Config, authType methodk
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		errors = append(errors, err.Error())
-		return &methodk8s.PodReport{Errors: errors}, err
+		return &methodk8s.PodReport{}, err
 	}
 
 	podsList, err := clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return &methodk8s.PodReport{Errors: errors}, err
+		errors = append(errors, err.Error())
+		return &methodk8s.PodReport{AuthType: authType, Errors: errors}, nil
 	}
 
 	pods := []*methodk8s.Pod{}
