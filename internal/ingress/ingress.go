@@ -31,8 +31,7 @@ func EnumerateIngresses(ctx context.Context, k8sconfig *rest.Config, authType me
 		// Create a new Kubernetes client specific for gateways
 		k8sClient, err := client.New(config, client.Options{Scheme: scheme.Scheme})
 		if err != nil {
-			errors = append(errors, err.Error())
-			return &methodk8s.IngressReport{Errors: errors}, err
+			return &methodk8s.IngressReport{}, err
 		}
 
 		httpRoutesList := &gatewayv1beta1.HTTPRouteList{}
@@ -103,7 +102,7 @@ func EnumerateIngresses(ctx context.Context, k8sconfig *rest.Config, authType me
 	if contains(types, "ingress") || len(types) == 0 {
 		clientset, err := kubernetes.NewForConfig(config)
 		if err != nil {
-			return &methodk8s.IngressReport{Errors: errors}, err
+			return &methodk8s.IngressReport{}, err
 		}
 		ingressList, err := clientset.NetworkingV1().Ingresses("").List(ctx, metav1.ListOptions{})
 		if err != nil {
@@ -134,6 +133,9 @@ func EnumerateIngresses(ctx context.Context, k8sconfig *rest.Config, authType me
 		}
 	}
 
+	if len(httpRoutes) == 0 && len(ingresses) == 0 {
+		return &methodk8s.IngressReport{AuthType: authType, Errors: errors}, nil
+	}
 	resources = methodk8s.IngressReport{
 		HttpRoutes: httpRoutes,
 		Ingresses:  ingresses,

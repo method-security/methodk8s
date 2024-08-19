@@ -18,13 +18,13 @@ func EnumerateNodes(ctx context.Context, k8sconfig *rest.Config, authType method
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		errors = append(errors, err.Error())
-		return &methodk8s.NodeReport{Errors: errors}, err
+		return &methodk8s.NodeReport{}, err
 	}
 
 	nodesList, err := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return &methodk8s.NodeReport{Errors: errors}, err
+		errors = append(errors, err.Error())
+		return &methodk8s.NodeReport{AuthType: authType, Errors: errors}, nil
 	}
 
 	nodes := []*methodk8s.Node{}

@@ -17,13 +17,13 @@ func EnumerateServices(ctx context.Context, k8sconfig *rest.Config, authType met
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		errors = append(errors, err.Error())
-		return &methodk8s.ServiceReport{Errors: errors}, err
+		return &methodk8s.ServiceReport{}, err
 	}
 
 	servicesList, err := clientset.CoreV1().Services("").List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return &methodk8s.ServiceReport{Errors: errors}, err
+		errors = append(errors, err.Error())
+		return &methodk8s.ServiceReport{AuthType: authType, Errors: errors}, nil
 	}
 
 	services := []*methodk8s.Service{}
