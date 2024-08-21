@@ -4,7 +4,7 @@ types:
   Service: 
     properties:
       name: string
-      namespace: string
+      namespace: common.NamespaceInfo
       type: string
       pods: optional<list<string>>
       annotations: optional<map<string, string>>

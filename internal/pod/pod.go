@@ -28,6 +28,11 @@ func EnumeratePods(ctx context.Context, k8sconfig *rest.Config, authType methodk
 
 	pods := []*methodk8s.Pod{}
 	for _, pod := range podsList.Items {
+		namespace, err := clientset.CoreV1().Namespaces().Get(ctx, pod.GetNamespace(), metav1.GetOptions{})
+		if err != nil {
+			errors = append(errors, err.Error())
+			continue
+		}
 		containers := []*methodk8s.Container{}
 		for _, container := range pod.Spec.Containers {
 			ports := []*methodk8s.ContainerPort{}
@@ -37,7 +42,6 @@ func EnumeratePods(ctx context.Context, k8sconfig *rest.Config, authType methodk
 					errors = append(errors, err.Error())
 					protocol, _ = methodk8s.NewProtocolTypesFromString("UNDEFINED")
 				}
-
 				portInfo := methodk8s.ContainerPort{
 					Port:     int(port.ContainerPort),
 					Protocol: protocol,
@@ -54,7 +58,6 @@ func EnumeratePods(ctx context.Context, k8sconfig *rest.Config, authType methodk
 				AllowPrivilegeEscalation: &allowPrivilegeEscalation,
 				ReadOnlyRootFilesystem:   &readOnlyRootFilesystem,
 			}
-
 			containerInfo := methodk8s.Container{
 				Name:            container.Name,
 				Image:           container.Image,
@@ -69,19 +72,23 @@ func EnumeratePods(ctx context.Context, k8sconfig *rest.Config, authType methodk
 			errors = append(errors, err.Error())
 			status, _ = methodk8s.NewStatusTypesFromString("Unknown")
 		}
+
+		namespaceInfo := methodk8s.NamespaceInfo{
+			Name: namespace.GetName(),
+			Uid:  string(namespace.GetUID()),
+		}
 		statusInfo := methodk8s.Status{
 			Status: status,
 			PodIp:  &pod.Status.PodIP,
 			HostIp: &pod.Status.HostIP,
 		}
-
 		version := pod.GetResourceVersion()
 		podInfo := methodk8s.Pod{
 			Uid:         string(pod.GetUID()),
 			Name:        pod.GetName(),
-			Namespace:   pod.GetNamespace(),
-			Version:     &version,
+			Namespace:   &namespaceInfo,
 			Status:      &statusInfo,
+			Version:     &version,
 			Node:        pod.Spec.NodeName,
 			Containers:  containers,
 			Annotations: pod.Annotations,
@@ -96,6 +103,5 @@ func EnumeratePods(ctx context.Context, k8sconfig *rest.Config, authType methodk
 		AuthType:   authType,
 		Errors:     errors,
 	}
-
 	return &resources, nil
 }
