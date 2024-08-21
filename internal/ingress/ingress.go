@@ -47,6 +47,7 @@ func EnumerateIngresses(ctx context.Context, k8sconfig *rest.Config, authType me
 					errors = append(errors, err.Error())
 					continue
 				}
+				// Http Route Definition Namespace
 				namespaceInfo := methodk8s.NamespaceInfo{
 					Name: namespace.GetName(),
 					Uid:  string(namespace.GetUID()),
@@ -57,15 +58,16 @@ func EnumerateIngresses(ctx context.Context, k8sconfig *rest.Config, authType me
 					hostnames = append(hostnames, string(host))
 				}
 
-				gateways := []*methodk8s.Gateway{}
+				gateways := []*methodk8s.GatewayInfo{}
 				for _, gw := range route.Spec.ParentRefs {
+					// Gateway Namespace
 					gatewayNamespace, err := clientset.CoreV1().Namespaces().Get(ctx, string(*gw.Namespace), metav1.GetOptions{})
 					if err != nil {
 						errors = append(errors, err.Error())
 						continue
 					}
 
-					gatewayInfo := &methodk8s.Gateway{
+					gatewayInfo := &methodk8s.GatewayInfo{
 						Name: string(gw.Name),
 						Namespace: &methodk8s.NamespaceInfo{
 							Name: gatewayNamespace.GetName(),
@@ -75,7 +77,7 @@ func EnumerateIngresses(ctx context.Context, k8sconfig *rest.Config, authType me
 					gateways = append(gateways, gatewayInfo)
 				}
 
-				paths := []*methodk8s.Path{}
+				paths := []*methodk8s.PathInfo{}
 				for _, rule := range route.Spec.Rules {
 					for _, match := range rule.Matches {
 						if match.Path != nil && match.Path.Value != nil {
@@ -88,7 +90,7 @@ func EnumerateIngresses(ctx context.Context, k8sconfig *rest.Config, authType me
 									} else {
 										backendNamespace = route.GetNamespace()
 									}
-
+									// Service Namespace
 									backendNamespaceObj, err := clientset.CoreV1().Namespaces().Get(ctx, backendNamespace, metav1.GetOptions{})
 									if err != nil {
 										errors = append(errors, err.Error())
@@ -96,7 +98,7 @@ func EnumerateIngresses(ctx context.Context, k8sconfig *rest.Config, authType me
 									}
 									namespaceUID = string(backendNamespaceObj.GetUID())
 
-									pathInfo := &methodk8s.Path{
+									pathInfo := &methodk8s.PathInfo{
 										Path: *match.Path.Value,
 										Base: hostname,
 										Service: &methodk8s.ServiceInfo{
@@ -143,25 +145,25 @@ func EnumerateIngresses(ctx context.Context, k8sconfig *rest.Config, authType me
 					errors = append(errors, err.Error())
 					continue
 				}
+				//Ingress Namespace
 				namespaceInfo := methodk8s.NamespaceInfo{
 					Name: namespace.GetName(),
 					Uid:  string(namespace.GetUID()),
 				}
 
-				rules := []*methodk8s.Rule{}
+				rules := []*methodk8s.RuleInfo{}
 				for _, rule := range ingress.Spec.Rules {
-					baseHost := rule.Host
-					service, err := clientset.CoreV1().Services(ingress.GetNamespace()).Get(ctx, rule.HTTP.Paths[0].Backend.Service.Name, metav1.GetOptions{})
-					if err == nil && service.Spec.Ports != nil && len(service.Spec.Ports) > 0 {
-						port := fmt.Sprintf(":%d", service.Spec.Ports[0].Port)
-						baseHost += port
-					}
-
+					basePath := rule.Host
 					for _, path := range rule.HTTP.Paths {
-						ruleInfo := methodk8s.Rule{
+						ruleInfo := methodk8s.RuleInfo{
 							Path:        path.Path,
-							Base:        baseHost,
+							Base:        basePath,
 							ServiceName: path.Backend.Service.Name,
+						}
+						service, err := clientset.CoreV1().Services(ingress.GetNamespace()).Get(ctx, rule.HTTP.Paths[0].Backend.Service.Name, metav1.GetOptions{})
+						if err == nil && service.Spec.Ports != nil && len(service.Spec.Ports) > 0 {
+							port := fmt.Sprintf("%d", service.Spec.Ports[0].Port)
+							ruleInfo.Port = &port
 						}
 						rules = append(rules, &ruleInfo)
 					}
@@ -176,15 +178,15 @@ func EnumerateIngresses(ctx context.Context, k8sconfig *rest.Config, authType me
 						if len(ingress.Spec.TLS) > 0 && len(ingress.Spec.TLS[0].Hosts) > 0 {
 							baseHost = ingress.Spec.TLS[0].Hosts[0]
 						}
-						port := ""
-						if service.Spec.Ports != nil && len(service.Spec.Ports) > 0 {
-							port = fmt.Sprintf(":%d", service.Spec.Ports[0].Port)
-						}
 
-						defaultRule := &methodk8s.Rule{
+						defaultRule := &methodk8s.RuleInfo{
 							Path:        "/",
-							Base:        baseHost + port,
+							Base:        baseHost,
 							ServiceName: service.Name,
+						}
+						if service.Spec.Ports != nil && len(service.Spec.Ports) > 0 {
+							port := fmt.Sprintf("%d", service.Spec.Ports[0].Port)
+							defaultRule.Port = &port
 						}
 						rules = append(rules, defaultRule)
 					}
@@ -205,6 +207,7 @@ func EnumerateIngresses(ctx context.Context, k8sconfig *rest.Config, authType me
 	if len(httpRoutes) == 0 && len(ingresses) == 0 {
 		return &methodk8s.IngressReport{AuthType: authType, Errors: errors}, nil
 	}
+
 	resources = methodk8s.IngressReport{
 		HttpRoutes: httpRoutes,
 		Ingresses:  ingresses,
@@ -212,7 +215,6 @@ func EnumerateIngresses(ctx context.Context, k8sconfig *rest.Config, authType me
 		AuthType:   authType,
 		Errors:     errors,
 	}
-
 	return &resources, nil
 }
 
