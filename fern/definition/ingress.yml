@@ -1,29 +1,30 @@
 imports:
   common: ./common.yml
 types:
-  Rule:
+  RuleInfo:
     properties:
       path: string
       base: string
+      port: optional<string>
       serviceName: string
   Ingress:
     properties:
       name: string
       namespace: common.NamespaceInfo
-      rules: optional<list<Rule>>
+      rules: optional<list<RuleInfo>>
       annotations: optional<map<string, string>>
       labels: optional<map<string, string>>
   ServiceInfo:
     properties:
       name: string
       namespace: common.NamespaceInfo
-  Path:
+  PathInfo:
     properties:
       path: string
       base: string
       port: optional<string>
       service: ServiceInfo
-  Gateway:
+  GatewayInfo:
     properties:
       name: string
       namespace: common.NamespaceInfo
@@ -33,8 +34,8 @@ types:
       namespace: common.NamespaceInfo
       annotations: optional<map<string, string>>
       labels: optional<map<string, string>>
-      gateways: optional<list<Gateway>>
-      paths: optional<list<Path>>
+      gateways: optional<list<GatewayInfo>>
+      paths: optional<list<PathInfo>>
   IngressReport:
     properties:
       httpRoutes: optional<list<HttpRoute>>
