@@ -28,15 +28,24 @@ func EnumerateServices(ctx context.Context, k8sconfig *rest.Config, authType met
 
 	services := []*methodk8s.Service{}
 	for _, service := range servicesList.Items {
-		// Get the related Pod UIDs
+		namespace, err := clientset.CoreV1().Namespaces().Get(ctx, service.GetNamespace(), metav1.GetOptions{})
+		if err != nil {
+			errors = append(errors, err.Error())
+			continue
+		}
+
 		podUIDs, err := getPodUIDsForService(ctx, clientset, service.GetNamespace(), service.Spec.Selector)
 		if err != nil {
 			errors = append(errors, err.Error())
 		}
 
+		namespaceInfo := methodk8s.NamespaceInfo{
+			Name: namespace.GetName(),
+			Uid:  string(namespace.GetUID()),
+		}
 		serviceInfo := methodk8s.Service{
 			Name:        service.GetName(),
-			Namespace:   service.GetNamespace(),
+			Namespace:   &namespaceInfo,
 			Type:        string(service.Spec.Type),
 			Pods:        podUIDs,
 			Annotations: service.Annotations,
@@ -52,7 +61,6 @@ func EnumerateServices(ctx context.Context, k8sconfig *rest.Config, authType met
 		AuthType:   authType,
 		Errors:     errors,
 	}
-
 	return &resources, nil
 }
 

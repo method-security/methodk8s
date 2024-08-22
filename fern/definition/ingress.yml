@@ -9,25 +9,28 @@ types:
   Ingress:
     properties:
       name: string
-      namespace: string
+      namespace: common.NamespaceInfo
       rules: optional<list<Rule>>
       annotations: optional<map<string, string>>
       labels: optional<map<string, string>>
+  ServiceInfo:
+    properties:
+      name: string
+      namespace: common.NamespaceInfo
   Path:
     properties:
       path: string
       base: string
       port: optional<string>
-      serviceName: string
-      serviceNamespace: string
+      service: ServiceInfo
   Gateway:
     properties:
       name: string
-      namespace: string
+      namespace: common.NamespaceInfo
   HttpRoute:
     properties:
       name: string
-      namespace: string
+      namespace: common.NamespaceInfo
       annotations: optional<map<string, string>>
       labels: optional<map<string, string>>
       gateways: optional<list<Gateway>>

@@ -1,4 +1,8 @@
 types:
+  NamespaceInfo:
+    properties:
+      name: string
+      uid: string
   ProtocolTypes:
     enum:
       - HTTP

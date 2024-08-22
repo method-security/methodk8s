@@ -39,6 +39,48 @@ func (a AuthTypes) Ptr() *AuthTypes {
 	return &a
 }
 
+type NamespaceInfo struct {
+	Name string `json:"name" url:"name"`
+	Uid  string `json:"uid" url:"uid"`
+
+	extraProperties map[string]interface{}
+	_rawJSON        json.RawMessage
+}
+
+func (n *NamespaceInfo) GetExtraProperties() map[string]interface{} {
+	return n.extraProperties
+}
+
+func (n *NamespaceInfo) UnmarshalJSON(data []byte) error {
+	type unmarshaler NamespaceInfo
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*n = NamespaceInfo(value)
+
+	extraProperties, err := core.ExtractExtraProperties(data, *n)
+	if err != nil {
+		return err
+	}
+	n.extraProperties = extraProperties
+
+	n._rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (n *NamespaceInfo) String() string {
+	if len(n._rawJSON) > 0 {
+		if value, err := core.StringifyJSON(n._rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := core.StringifyJSON(n); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", n)
+}
+
 type ProtocolTypes string
 
 const (
@@ -80,8 +122,8 @@ func (p ProtocolTypes) Ptr() *ProtocolTypes {
 }
 
 type Gateway struct {
-	Name      string `json:"name" url:"name"`
-	Namespace string `json:"namespace" url:"namespace"`
+	Name      string         `json:"name" url:"name"`
+	Namespace *NamespaceInfo `json:"namespace,omitempty" url:"namespace,omitempty"`
 
 	extraProperties map[string]interface{}
 	_rawJSON        json.RawMessage
@@ -123,7 +165,7 @@ func (g *Gateway) String() string {
 
 type HttpRoute struct {
 	Name        string            `json:"name" url:"name"`
-	Namespace   string            `json:"namespace" url:"namespace"`
+	Namespace   *NamespaceInfo    `json:"namespace,omitempty" url:"namespace,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty" url:"annotations,omitempty"`
 	Labels      map[string]string `json:"labels,omitempty" url:"labels,omitempty"`
 	Gateways    []*Gateway        `json:"gateways,omitempty" url:"gateways,omitempty"`
@@ -169,7 +211,7 @@ func (h *HttpRoute) String() string {
 
 type Ingress struct {
 	Name        string            `json:"name" url:"name"`
-	Namespace   string            `json:"namespace" url:"namespace"`
+	Namespace   *NamespaceInfo    `json:"namespace,omitempty" url:"namespace,omitempty"`
 	Rules       []*Rule           `json:"rules,omitempty" url:"rules,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty" url:"annotations,omitempty"`
 	Labels      map[string]string `json:"labels,omitempty" url:"labels,omitempty"`
@@ -258,11 +300,10 @@ func (i *IngressReport) String() string {
 }
 
 type Path struct {
-	Path             string  `json:"path" url:"path"`
-	Base             string  `json:"base" url:"base"`
-	Port             *string `json:"port,omitempty" url:"port,omitempty"`
-	ServiceName      string  `json:"serviceName" url:"serviceName"`
-	ServiceNamespace string  `json:"serviceNamespace" url:"serviceNamespace"`
+	Path    string       `json:"path" url:"path"`
+	Base    string       `json:"base" url:"base"`
+	Port    *string      `json:"port,omitempty" url:"port,omitempty"`
+	Service *ServiceInfo `json:"service,omitempty" url:"service,omitempty"`
 
 	extraProperties map[string]interface{}
 	_rawJSON        json.RawMessage
@@ -343,6 +384,48 @@ func (r *Rule) String() string {
 		return value
 	}
 	return fmt.Sprintf("%#v", r)
+}
+
+type ServiceInfo struct {
+	Name      string         `json:"name" url:"name"`
+	Namespace *NamespaceInfo `json:"namespace,omitempty" url:"namespace,omitempty"`
+
+	extraProperties map[string]interface{}
+	_rawJSON        json.RawMessage
+}
+
+func (s *ServiceInfo) GetExtraProperties() map[string]interface{} {
+	return s.extraProperties
+}
+
+func (s *ServiceInfo) UnmarshalJSON(data []byte) error {
+	type unmarshaler ServiceInfo
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*s = ServiceInfo(value)
+
+	extraProperties, err := core.ExtractExtraProperties(data, *s)
+	if err != nil {
+		return err
+	}
+	s.extraProperties = extraProperties
+
+	s._rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (s *ServiceInfo) String() string {
+	if len(s._rawJSON) > 0 {
+		if value, err := core.StringifyJSON(s._rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := core.StringifyJSON(s); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", s)
 }
 
 type Address struct {
@@ -589,7 +672,7 @@ func (c *ContainerPort) String() string {
 type Pod struct {
 	Uid         string            `json:"uid" url:"uid"`
 	Name        string            `json:"name" url:"name"`
-	Namespace   string            `json:"namespace" url:"namespace"`
+	Namespace   *NamespaceInfo    `json:"namespace,omitempty" url:"namespace,omitempty"`
 	Version     *string           `json:"version,omitempty" url:"version,omitempty"`
 	Node        string            `json:"node" url:"node"`
 	Status      *Status           `json:"status,omitempty" url:"status,omitempty"`
@@ -798,7 +881,7 @@ func (s StatusTypes) Ptr() *StatusTypes {
 
 type Service struct {
 	Name        string            `json:"name" url:"name"`
-	Namespace   string            `json:"namespace" url:"namespace"`
+	Namespace   *NamespaceInfo    `json:"namespace,omitempty" url:"namespace,omitempty"`
 	Type        string            `json:"type" url:"type"`
 	Pods        []string          `json:"pods,omitempty" url:"pods,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty" url:"annotations,omitempty"`
