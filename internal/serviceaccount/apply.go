@@ -82,7 +82,7 @@ func getClusterRole() *rbacv1.ClusterRole {
 		Rules: []rbacv1.PolicyRule{
 			{
 				APIGroups: []string{""},
-				Resources: []string{"pods", "services", "endpoints", "nodes"},
+				Resources: []string{"pods", "services", "endpoints", "nodes", "namespaces"},
 				Verbs:     []string{"get", "list", "watch"},
 			},
 			{
