@@ -216,52 +216,52 @@ func EnumerateIngresses(ctx context.Context, k8sconfig *rest.Config, authType me
 		if err != nil {
 			errors = append(errors, err.Error())
 		} else {
-			// Loop through all services and filter only LoadBalancer services
-			for _, svc := range serviceList.Items {
-				if svc.Spec.Type == corev1.ServiceTypeLoadBalancer {
-					namespace, err := clientset.CoreV1().Namespaces().Get(ctx, svc.GetNamespace(), metav1.GetOptions{})
-					if err != nil {
-						errors = append(errors, err.Error())
-						continue
-					}
-
-					// LoadBalancer Namespace
-					namespaceInfo := methodk8s.NamespaceInfo{
-						Name: namespace.GetName(),
-						Uid:  string(namespace.GetUID()),
-					}
-
-					paths := []*methodk8s.PathInfo{}
-					for _, ingress := range svc.Status.LoadBalancer.Ingress {
-						basePath := ingress.IP
-						if basePath == "" {
-							basePath = ingress.Hostname
-						}
-
-						for _, port := range svc.Spec.Ports {
-							portStr := fmt.Sprintf("%d", port.Port)
-							pathInfo := methodk8s.PathInfo{
-								Path: "/",
-								Base: basePath,
-								Port: &portStr,
-								Service: &methodk8s.ServiceInfo{
-									Name:      svc.Name,
-									Namespace: &namespaceInfo,
-								},
-							}
-							paths = append(paths, &pathInfo)
-						}
-					}
-
-					loadBalancerInfo := &methodk8s.LoadBalancer{
-						Name:        svc.GetName(),
-						Namespace:   &namespaceInfo,
-						Annotations: svc.GetAnnotations(),
-						Labels:      svc.GetLabels(),
-						Paths:       paths,
-					}
-					loadBalancers = append(loadBalancers, loadBalancerInfo)
+			// Loop through LoadBalancer services
+			serviceLoadBalancers := getLoadBalancerServices(serviceList.Items)
+			for _, lb := range serviceLoadBalancers {
+				namespace, err := clientset.CoreV1().Namespaces().Get(ctx, lb.GetNamespace(), metav1.GetOptions{})
+				if err != nil {
+					errors = append(errors, err.Error())
+					continue
 				}
+
+				// LoadBalancer Namespace
+				namespaceInfo := methodk8s.NamespaceInfo{
+					Name: namespace.GetName(),
+					Uid:  string(namespace.GetUID()),
+				}
+
+				paths := []*methodk8s.PathInfo{}
+				for _, ingress := range lb.Status.LoadBalancer.Ingress {
+					basePath := ingress.IP
+					if basePath == "" {
+						basePath = ingress.Hostname
+					}
+
+					for _, port := range lb.Spec.Ports {
+						portStr := fmt.Sprintf("%d", port.Port)
+						pathInfo := methodk8s.PathInfo{
+							Path: "/",
+							Base: basePath,
+							Port: &portStr,
+							Service: &methodk8s.ServiceInfo{
+								Name:      lb.Name,
+								Namespace: &namespaceInfo,
+							},
+						}
+						paths = append(paths, &pathInfo)
+					}
+				}
+
+				loadBalancerInfo := &methodk8s.LoadBalancer{
+					Name:        lb.GetName(),
+					Namespace:   &namespaceInfo,
+					Annotations: lb.GetAnnotations(),
+					Labels:      lb.GetLabels(),
+					Paths:       paths,
+				}
+				loadBalancers = append(loadBalancers, loadBalancerInfo)
+
 			}
 		}
 	}
@@ -288,4 +288,14 @@ func contains(slice []string, item string) bool {
 		}
 	}
 	return false
+}
+
+func getLoadBalancerServices(serviceList []corev1.Service) []corev1.Service {
+	var loadBalancerServices []corev1.Service
+	for _, svc := range serviceList {
+		if svc.Spec.Type == corev1.ServiceTypeLoadBalancer {
+			loadBalancerServices = append(loadBalancerServices, svc)
+		}
+	}
+	return loadBalancerServices
 }

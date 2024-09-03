@@ -35,7 +35,7 @@ func (a *MethodK8s) InitIngressCommand() {
 			a.OutputSignal.Content = report
 		},
 	}
-	enumerateCmd.Flags().StringSlice("type", []string{}, "List the types to emumerate (ie.--types ingress --types gateway --types loadbalancer)")
+	enumerateCmd.Flags().StringSlice("type", []string{}, "List the types to emumerate (ie.--type ingress --type gateway --type loadbalancer)")
 
 	ingressCmd.AddCommand(enumerateCmd)
 	a.RootCmd.AddCommand(ingressCmd)
