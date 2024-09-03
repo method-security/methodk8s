@@ -20,12 +20,14 @@ func EnumeratePods(ctx context.Context, k8sconfig *rest.Config, authType methodk
 		return &methodk8s.PodReport{}, err
 	}
 
+	// Fetch all Pods
 	podsList, err := clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
 	if err != nil {
 		errors = append(errors, err.Error())
 		return &methodk8s.PodReport{AuthType: authType, Errors: errors}, nil
 	}
 
+	// Loop through Pods
 	pods := []*methodk8s.Pod{}
 	for _, pod := range podsList.Items {
 		namespace, err := clientset.CoreV1().Namespaces().Get(ctx, pod.GetNamespace(), metav1.GetOptions{})
@@ -33,16 +35,17 @@ func EnumeratePods(ctx context.Context, k8sconfig *rest.Config, authType methodk
 			errors = append(errors, err.Error())
 			continue
 		}
-		containers := []*methodk8s.Container{}
+		// Containers
+		containers := []*methodk8s.ContainerInfo{}
 		for _, container := range pod.Spec.Containers {
-			ports := []*methodk8s.ContainerPort{}
+			ports := []*methodk8s.ContainerPortInfo{}
 			for _, port := range container.Ports {
 				protocol, err := methodk8s.NewProtocolTypesFromString(string(port.Protocol))
 				if err != nil {
 					errors = append(errors, err.Error())
 					protocol, _ = methodk8s.NewProtocolTypesFromString("UNDEFINED")
 				}
-				portInfo := methodk8s.ContainerPort{
+				portInfo := methodk8s.ContainerPortInfo{
 					Port:     int(port.ContainerPort),
 					Protocol: protocol,
 				}
@@ -53,12 +56,12 @@ func EnumeratePods(ctx context.Context, k8sconfig *rest.Config, authType methodk
 			allowPrivilegeEscalation := container.SecurityContext != nil && container.SecurityContext.AllowPrivilegeEscalation != nil && *container.SecurityContext.AllowPrivilegeEscalation
 			readOnlyRootFilesystem := container.SecurityContext != nil && container.SecurityContext.ReadOnlyRootFilesystem != nil && *container.SecurityContext.ReadOnlyRootFilesystem
 
-			securityContext := methodk8s.SecurityContext{
+			securityContext := methodk8s.SecurityContextInfo{
 				RunAsRoot:                &runAsRoot,
 				AllowPrivilegeEscalation: &allowPrivilegeEscalation,
 				ReadOnlyRootFilesystem:   &readOnlyRootFilesystem,
 			}
-			containerInfo := methodk8s.Container{
+			containerInfo := methodk8s.ContainerInfo{
 				Name:            container.Name,
 				Image:           container.Image,
 				Ports:           ports,
@@ -67,29 +70,29 @@ func EnumeratePods(ctx context.Context, k8sconfig *rest.Config, authType methodk
 			containers = append(containers, &containerInfo)
 		}
 
+		// Pod
 		status, err := methodk8s.NewStatusTypesFromString(string(pod.Status.Phase))
 		if err != nil {
 			errors = append(errors, err.Error())
 			status, _ = methodk8s.NewStatusTypesFromString("Unknown")
 		}
-
-		namespaceInfo := methodk8s.NamespaceInfo{
-			Name: namespace.GetName(),
-			Uid:  string(namespace.GetUID()),
-		}
-		statusInfo := methodk8s.Status{
+		version := pod.GetResourceVersion()
+		statusInfo := methodk8s.StatusInfo{
 			Status: status,
 			PodIp:  &pod.Status.PodIP,
 			HostIp: &pod.Status.HostIP,
 		}
-		version := pod.GetResourceVersion()
+		namespaceInfo := methodk8s.NamespaceInfo{
+			Name: namespace.GetName(),
+			Uid:  string(namespace.GetUID()),
+		}
 		podInfo := methodk8s.Pod{
 			Uid:         string(pod.GetUID()),
 			Name:        pod.GetName(),
-			Namespace:   &namespaceInfo,
+			Version:     version,
 			Status:      &statusInfo,
-			Version:     &version,
-			Node:        pod.Spec.NodeName,
+			Namespace:   &namespaceInfo,
+			NodeUid:     &pod.Spec.NodeName,
 			Containers:  containers,
 			Annotations: pod.Annotations,
 			Labels:      pod.Labels,

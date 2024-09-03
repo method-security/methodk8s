@@ -26,11 +26,10 @@ For the full list of available installation options, please see the [Installatio
 - [Installation documentation](./getting-started/installation.md)
 
 ### Authentication
-Authentication can be done in 2 ways:
-1. By setting the `--path` flag to point at a kube config file
+Authentication can be done in 3 ways:
+1. By setting the `--path` flag to the path of a `.kube/config` file
 2. Setting the `$KUBECONFIG` env variable to the path of a kube config file
-
-### General Usage
+3. Configure a Sevice Account (See Service Account documentation for more detail)
 
 ### General Usage
 

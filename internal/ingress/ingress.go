@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	methodk8s "github.com/method-security/methodk8s/generated/go"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -30,13 +31,14 @@ func EnumerateIngresses(ctx context.Context, k8sconfig *rest.Config, authType me
 		return &methodk8s.IngressReport{}, err
 	}
 
+	// Http Routes Definitions
 	httpRoutes := []*methodk8s.HttpRoute{}
 	if contains(types, "gateway") || len(types) == 0 {
 		k8sClient, err := client.New(config, client.Options{Scheme: scheme.Scheme})
 		if err != nil {
 			return &methodk8s.IngressReport{}, err
 		}
-
+		// Loop through HTTP Routes
 		httpRoutesList := &gatewayv1beta1.HTTPRouteList{}
 		if err := k8sClient.List(ctx, httpRoutesList, &client.ListOptions{}); err != nil {
 			errors = append(errors, err.Error())
@@ -47,7 +49,7 @@ func EnumerateIngresses(ctx context.Context, k8sconfig *rest.Config, authType me
 					errors = append(errors, err.Error())
 					continue
 				}
-				// Http Route Definition Namespace
+				// Http Route Namespace
 				namespaceInfo := methodk8s.NamespaceInfo{
 					Name: namespace.GetName(),
 					Uid:  string(namespace.GetUID()),
@@ -133,12 +135,14 @@ func EnumerateIngresses(ctx context.Context, k8sconfig *rest.Config, authType me
 		}
 	}
 
+	// Ingress Definitions
 	ingresses := []*methodk8s.Ingress{}
 	if contains(types, "ingress") || len(types) == 0 {
 		ingressList, err := clientset.NetworkingV1().Ingresses("").List(ctx, metav1.ListOptions{})
 		if err != nil {
 			errors = append(errors, err.Error())
 		} else {
+			// Loop through Ingresses
 			for _, ingress := range ingressList.Items {
 				namespace, err := clientset.CoreV1().Namespaces().Get(ctx, ingress.GetNamespace(), metav1.GetOptions{})
 				if err != nil {
@@ -204,16 +208,75 @@ func EnumerateIngresses(ctx context.Context, k8sconfig *rest.Config, authType me
 		}
 	}
 
-	if len(httpRoutes) == 0 && len(ingresses) == 0 {
+	// LoadBalancer Definitions
+	loadBalancers := []*methodk8s.LoadBalancer{}
+	if contains(types, "loadbalancer") || len(types) == 0 {
+		// List all services in all namespaces
+		serviceList, err := clientset.CoreV1().Services("").List(ctx, metav1.ListOptions{})
+		if err != nil {
+			errors = append(errors, err.Error())
+		} else {
+			// Loop through all services and filter only LoadBalancer services
+			for _, svc := range serviceList.Items {
+				if svc.Spec.Type == corev1.ServiceTypeLoadBalancer {
+					namespace, err := clientset.CoreV1().Namespaces().Get(ctx, svc.GetNamespace(), metav1.GetOptions{})
+					if err != nil {
+						errors = append(errors, err.Error())
+						continue
+					}
+
+					// LoadBalancer Namespace
+					namespaceInfo := methodk8s.NamespaceInfo{
+						Name: namespace.GetName(),
+						Uid:  string(namespace.GetUID()),
+					}
+
+					paths := []*methodk8s.PathInfo{}
+					for _, ingress := range svc.Status.LoadBalancer.Ingress {
+						basePath := ingress.IP
+						if basePath == "" {
+							basePath = ingress.Hostname
+						}
+
+						for _, port := range svc.Spec.Ports {
+							portStr := fmt.Sprintf("%d", port.Port)
+							pathInfo := methodk8s.PathInfo{
+								Path: "/",
+								Base: basePath,
+								Port: &portStr,
+								Service: &methodk8s.ServiceInfo{
+									Name:      svc.Name,
+									Namespace: &namespaceInfo,
+								},
+							}
+							paths = append(paths, &pathInfo)
+						}
+					}
+
+					loadBalancerInfo := &methodk8s.LoadBalancer{
+						Name:        svc.GetName(),
+						Namespace:   &namespaceInfo,
+						Annotations: svc.GetAnnotations(),
+						Labels:      svc.GetLabels(),
+						Paths:       paths,
+					}
+					loadBalancers = append(loadBalancers, loadBalancerInfo)
+				}
+			}
+		}
+	}
+
+	if len(httpRoutes) == 0 && len(ingresses) == 0 && len(loadBalancers) == 0 {
 		return &methodk8s.IngressReport{AuthType: authType, Errors: errors}, nil
 	}
 
 	resources = methodk8s.IngressReport{
-		HttpRoutes: httpRoutes,
-		Ingresses:  ingresses,
-		ClusterUrl: &config.Host,
-		AuthType:   authType,
-		Errors:     errors,
+		HttpRoutes:    httpRoutes,
+		Ingresses:     ingresses,
+		LoadBalancers: loadBalancers,
+		ClusterUrl:    &config.Host,
+		AuthType:      authType,
+		Errors:        errors,
 	}
 	return &resources, nil
 }

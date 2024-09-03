@@ -8,35 +8,35 @@ types:
       - Succeeded
       - Failed
       - Unknown
-  Status:
+  StatusInfo:
     properties:
       status: StatusTypes
       podIp: optional<string>
       hostIp: optional<string>
-  ContainerPort:
+  ContainerPortInfo:
     properties:
       port: integer
       protocol: common.ProtocolTypes
-  SecurityContext:
+  SecurityContextInfo:
     properties:
       runAsRoot: optional<boolean>
       allowPrivilegeEscalation: optional<boolean>
       readOnlyRootFilesystem: optional<boolean>
-  Container:
+  ContainerInfo:
     properties:
       name: string
       image: string
-      ports: optional<list<ContainerPort>>
-      securityContext: optional<SecurityContext>
+      ports: optional<list<ContainerPortInfo>>
+      securityContext: optional<SecurityContextInfo>
   Pod:
     properties:
       uid: string
       name: string
+      version: string
+      status: StatusInfo
       namespace: common.NamespaceInfo
-      version: optional<string>
-      node: string
-      status: optional<Status>
-      containers: list<Container>
+      nodeUid: optional<string>
+      containers: list<ContainerInfo>
       labels: optional<map<string, string>>
       annotations: optional<map<string, string>>
   PodReport:

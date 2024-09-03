@@ -36,10 +36,18 @@ types:
       labels: optional<map<string, string>>
       gateways: optional<list<GatewayInfo>>
       paths: optional<list<PathInfo>>
+  LoadBalancer:
+   properties:
+      name: string
+      namespace: common.NamespaceInfo
+      annotations: optional<map<string, string>>
+      labels: optional<map<string, string>>
+      paths: optional<list<PathInfo>>
   IngressReport:
     properties:
       httpRoutes: optional<list<HttpRoute>>
       ingresses: optional<list<Ingress>>
+      loadBalancers: optional<list<LoadBalancer>>
       clusterUrl: optional<string>
       authType: common.AuthTypes
       errors: optional<list<string>>
