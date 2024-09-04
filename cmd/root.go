@@ -110,14 +110,14 @@ func (a *MethodK8s) InitRootCommand() {
 	a.RootCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "signal", "Output format (signal, json, yaml). Default value is signal")
 
 	// ServiceAccountConfig flags
-	a.RootCmd.PersistentFlags().BoolVarP(&a.RootFlags.ServiceAccountConfig.ServiceAccount, "serviceaccount", "s", false, "Set to true if using service account workflow")
-	a.RootCmd.PersistentFlags().StringVarP(&a.RootFlags.ServiceAccountConfig.Token, "token", "t", "", "Base64 Service account token")
-	a.RootCmd.PersistentFlags().StringVarP(&a.RootFlags.ServiceAccountConfig.CACert, "cert", "a", "", "Base64 encoded ca certificate")
+	a.RootCmd.PersistentFlags().BoolVarP(&a.RootFlags.ServiceAccountConfig.ServiceAccount, "serviceaccount", "s", false, "Set to True if using service account workflow")
+	a.RootCmd.PersistentFlags().StringVarP(&a.RootFlags.ServiceAccountConfig.Token, "token", "t", "", "Base64 Service Account token")
+	a.RootCmd.PersistentFlags().StringVarP(&a.RootFlags.ServiceAccountConfig.CACert, "cert", "a", "", "Base64 encoded CA Certificate")
 
 	// KubeConfig flags
 	a.RootCmd.PersistentFlags().StringVarP(&a.RootFlags.KubeConfig.Context, "context", "c", "", "Cluster context (ie. minikube)")
 	a.RootCmd.PersistentFlags().StringVarP(&a.RootFlags.KubeConfig.Path, "path", "p", "", "Absolute or relative path to the config file (ie. ~/.kube/config)")
-	a.RootCmd.PersistentFlags().StringVarP(&a.RootFlags.KubeConfig.URL, "url", "u", "", "Cluster url (ie. mycluster.com)")
+	a.RootCmd.PersistentFlags().StringVarP(&a.RootFlags.KubeConfig.URL, "url", "u", "", "Cluster URL (ie. mycluster.com)")
 
 	// Flag rules
 	a.RootCmd.MarkFlagsMutuallyExclusive("context", "serviceaccount")
@@ -160,9 +160,10 @@ func validateOutputFormat(output string) (writer.Format, error) {
 	return writer.NewFormat(format), nil
 }
 
-// GetK8sConfig gets the k8s config object from the various auth mechanisms
+// GetK8sConfig gets the config object from the various auth mechanisms
 func GetK8sConfig(a *MethodK8s) (*rest.Config, methodk8s.AuthTypes, error) {
 	unknownAuth, _ := methodk8s.NewAuthTypesFromString("UNKNOWN")
+	// Service Account
 	if a.RootFlags.ServiceAccountConfig.ServiceAccount {
 		K8sConfig, err := CreateConfigFromServiceAccountCreds(a.RootFlags.ServiceAccountConfig.Token, a.RootFlags.ServiceAccountConfig.CACert, a.RootFlags.KubeConfig.URL)
 		if err != nil {
@@ -180,7 +181,7 @@ func GetK8sConfig(a *MethodK8s) (*rest.Config, methodk8s.AuthTypes, error) {
 		}
 		auth, _ := methodk8s.NewAuthTypesFromString("KUBECONFIG")
 		return K8sConfig, auth, nil
-
+		// KUBECONFIG
 	} else if kubeEnv, exists := os.LookupEnv("KUBECONFIG"); exists && kubeEnv != "" {
 		K8sConfig, err := CreateConfigFromPath(os.Getenv("KUBECONFIG"), a.RootFlags.KubeConfig.Context)
 		if err != nil {
@@ -188,7 +189,7 @@ func GetK8sConfig(a *MethodK8s) (*rest.Config, methodk8s.AuthTypes, error) {
 		}
 		auth, _ := methodk8s.NewAuthTypesFromString("KUBECONFIG")
 		return K8sConfig, auth, nil
-
+		// Unauthenticated
 	} else if a.RootFlags.KubeConfig.URL != "" {
 		K8sConfigURL := a.RootFlags.KubeConfig.URL
 		K8sConfig := CreateConfigFromURL(K8sConfigURL)
@@ -197,14 +198,14 @@ func GetK8sConfig(a *MethodK8s) (*rest.Config, methodk8s.AuthTypes, error) {
 
 	}
 	err := errors.New("please provide either: " +
-		"Service account creds," +
-		"a path to a config file, " +
+		"Service Account Credentials," +
+		"A path to a config file, " +
 		"assign $KUBECONFIG to a path to the config file, " +
-		"or provide a URL to the cluster")
+		"or provide a Cluster URL")
 	return nil, unknownAuth, err
 }
 
-// CreateConfigFromServiceAccountCreds generates the k8s config object from a service account token, optional(ca cert), and cluster URL
+// CreateConfigFromServiceAccountCreds generates the Config object from a service account token, optional(ca cert), and cluster URL
 func CreateConfigFromServiceAccountCreds(tokenFlag string, caCertFlag string, urlFlag string) (*rest.Config, error) {
 	var err error
 
@@ -257,7 +258,7 @@ func CreateConfigFromServiceAccountCreds(tokenFlag string, caCertFlag string, ur
 	}, nil
 }
 
-// CreateConfigFromPath generates the k8s config object from a path to a config file
+// CreateConfigFromPath generates the Config object from a path to a config file
 func CreateConfigFromPath(configPath string, context string) (*rest.Config, error) {
 	loadingRules := &clientcmd.ClientConfigLoadingRules{ExplicitPath: configPath}
 	configOverrides := &clientcmd.ConfigOverrides{}
@@ -268,7 +269,7 @@ func CreateConfigFromPath(configPath string, context string) (*rest.Config, erro
 	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides).ClientConfig()
 }
 
-// CreateConfigFromURL generates the k8s config object from a k8s cluster URL
+// CreateConfigFromURL generates the Config object from a k8s cluster URL
 func CreateConfigFromURL(clusterURL string) *rest.Config {
 	return &rest.Config{
 		Host: clusterURL,

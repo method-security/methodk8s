@@ -3,13 +3,14 @@ imports:
 types:
   Service: 
     properties:
+      uid: string
       name: string
       namespace: common.NamespaceInfo
       type: string
-      pods: optional<list<string>>
+      pods: optional<list<common.PodInfo>>
+      selectors: optional<map<string, string>>
       annotations: optional<map<string, string>>
       labels: optional<map<string, string>>
-      selectors: optional<map<string, string>>
   ServiceReport:
     properties:
       services: optional<list<Service>>

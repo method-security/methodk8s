@@ -81,10 +81,10 @@ func (a *MethodK8s) InitServiceAccountCommand() {
 		},
 	}
 
-	credsCmd.Flags().String("secretname", "method-sa-secret", "The name of the secret to use for authentication")
-	credsCmd.Flags().String("namespace", "default", "Set the namespace for the Service Account and Secret")
-	applyCmd.Flags().Bool("run", false, "Apply the Service Account yamls (defaults to false)")
-	applyCmd.Flags().String("namespace", "default", "Set the namespace for the Service Account and Secret")
+	credsCmd.Flags().String("secretname", "method-sa-secret", "The name of the secret to use for authentication (Defaults to method-sa-secret)")
+	credsCmd.Flags().String("namespace", "default", "Set the namespace for the Service Account and Secret (Defaults to 'default')")
+	applyCmd.Flags().Bool("run", false, "Apply the Service Account yamls (Defaults to False)")
+	applyCmd.Flags().String("namespace", "default", "Set the namespace for the Service Account and Secret (Defaults to 'default')")
 
 	configureAccountCmd.AddCommand(credsCmd)
 	configureAccountCmd.AddCommand(applyCmd)

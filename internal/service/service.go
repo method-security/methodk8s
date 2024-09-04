@@ -20,12 +20,14 @@ func EnumerateServices(ctx context.Context, k8sconfig *rest.Config, authType met
 		return &methodk8s.ServiceReport{}, err
 	}
 
+	// Fetch all Services
 	servicesList, err := clientset.CoreV1().Services("").List(ctx, metav1.ListOptions{})
 	if err != nil {
 		errors = append(errors, err.Error())
 		return &methodk8s.ServiceReport{AuthType: authType, Errors: errors}, nil
 	}
 
+	// Loop through Services
 	services := []*methodk8s.Service{}
 	for _, service := range servicesList.Items {
 		namespace, err := clientset.CoreV1().Namespaces().Get(ctx, service.GetNamespace(), metav1.GetOptions{})
@@ -34,7 +36,7 @@ func EnumerateServices(ctx context.Context, k8sconfig *rest.Config, authType met
 			continue
 		}
 
-		podUIDs, err := getPodUIDsForService(ctx, clientset, service.GetNamespace(), service.Spec.Selector)
+		podInfos, err := getPodUIDsForService(ctx, clientset, service.GetNamespace(), service.Spec.Selector)
 		if err != nil {
 			errors = append(errors, err.Error())
 		}
@@ -44,13 +46,14 @@ func EnumerateServices(ctx context.Context, k8sconfig *rest.Config, authType met
 			Uid:  string(namespace.GetUID()),
 		}
 		serviceInfo := methodk8s.Service{
+			Uid:         string(service.UID),
 			Name:        service.GetName(),
 			Namespace:   &namespaceInfo,
 			Type:        string(service.Spec.Type),
-			Pods:        podUIDs,
+			Pods:        podInfos,
+			Selectors:   service.Spec.Selector,
 			Annotations: service.Annotations,
 			Labels:      service.Labels,
-			Selectors:   service.Spec.Selector,
 		}
 		services = append(services, &serviceInfo)
 	}
@@ -64,11 +67,10 @@ func EnumerateServices(ctx context.Context, k8sconfig *rest.Config, authType met
 	return &resources, nil
 }
 
-// getPodUIDsForService returns the UIDs of all pods related to the service based on the service's selectors
-func getPodUIDsForService(ctx context.Context, clientset *kubernetes.Clientset, namespace string, selectors map[string]string) ([]string, error) {
-	podUIDs := []string{}
+// getPodsForService returns the UIDs of all pods related to the service based on the service's selectors
+func getPodUIDsForService(ctx context.Context, clientset *kubernetes.Clientset, namespace string, selectors map[string]string) ([]*methodk8s.PodInfo, error) {
+	podInfos := []*methodk8s.PodInfo{}
 
-	// Convert selectors map to a label selector string
 	labelSelector := metav1.FormatLabelSelector(&metav1.LabelSelector{MatchLabels: selectors})
 	podsList, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
@@ -76,8 +78,9 @@ func getPodUIDsForService(ctx context.Context, clientset *kubernetes.Clientset, 
 	}
 
 	for _, pod := range podsList.Items {
-		podUIDs = append(podUIDs, string(pod.UID))
+		podInfo := methodk8s.PodInfo{Uid: string(pod.UID), Name: pod.Name}
+		podInfos = append(podInfos, &podInfo)
 	}
 
-	return podUIDs, nil
+	return podInfos, nil
 }

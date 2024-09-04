@@ -40,8 +40,8 @@ func (a AuthTypes) Ptr() *AuthTypes {
 }
 
 type NamespaceInfo struct {
-	Name string `json:"name" url:"name"`
 	Uid  string `json:"uid" url:"uid"`
+	Name string `json:"name" url:"name"`
 
 	extraProperties map[string]interface{}
 	_rawJSON        json.RawMessage
@@ -79,6 +79,90 @@ func (n *NamespaceInfo) String() string {
 		return value
 	}
 	return fmt.Sprintf("%#v", n)
+}
+
+type NodeInfo struct {
+	Uid  string `json:"uid" url:"uid"`
+	Name string `json:"name" url:"name"`
+
+	extraProperties map[string]interface{}
+	_rawJSON        json.RawMessage
+}
+
+func (n *NodeInfo) GetExtraProperties() map[string]interface{} {
+	return n.extraProperties
+}
+
+func (n *NodeInfo) UnmarshalJSON(data []byte) error {
+	type unmarshaler NodeInfo
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*n = NodeInfo(value)
+
+	extraProperties, err := core.ExtractExtraProperties(data, *n)
+	if err != nil {
+		return err
+	}
+	n.extraProperties = extraProperties
+
+	n._rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (n *NodeInfo) String() string {
+	if len(n._rawJSON) > 0 {
+		if value, err := core.StringifyJSON(n._rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := core.StringifyJSON(n); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", n)
+}
+
+type PodInfo struct {
+	Uid  string `json:"uid" url:"uid"`
+	Name string `json:"name" url:"name"`
+
+	extraProperties map[string]interface{}
+	_rawJSON        json.RawMessage
+}
+
+func (p *PodInfo) GetExtraProperties() map[string]interface{} {
+	return p.extraProperties
+}
+
+func (p *PodInfo) UnmarshalJSON(data []byte) error {
+	type unmarshaler PodInfo
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*p = PodInfo(value)
+
+	extraProperties, err := core.ExtractExtraProperties(data, *p)
+	if err != nil {
+		return err
+	}
+	p.extraProperties = extraProperties
+
+	p._rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (p *PodInfo) String() string {
+	if len(p._rawJSON) > 0 {
+		if value, err := core.StringifyJSON(p._rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := core.StringifyJSON(p); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", p)
 }
 
 type ProtocolTypes string
@@ -121,7 +205,51 @@ func (p ProtocolTypes) Ptr() *ProtocolTypes {
 	return &p
 }
 
+type ServiceInfo struct {
+	Uid       string         `json:"uid" url:"uid"`
+	Name      string         `json:"name" url:"name"`
+	Namespace *NamespaceInfo `json:"namespace,omitempty" url:"namespace,omitempty"`
+
+	extraProperties map[string]interface{}
+	_rawJSON        json.RawMessage
+}
+
+func (s *ServiceInfo) GetExtraProperties() map[string]interface{} {
+	return s.extraProperties
+}
+
+func (s *ServiceInfo) UnmarshalJSON(data []byte) error {
+	type unmarshaler ServiceInfo
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*s = ServiceInfo(value)
+
+	extraProperties, err := core.ExtractExtraProperties(data, *s)
+	if err != nil {
+		return err
+	}
+	s.extraProperties = extraProperties
+
+	s._rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (s *ServiceInfo) String() string {
+	if len(s._rawJSON) > 0 {
+		if value, err := core.StringifyJSON(s._rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := core.StringifyJSON(s); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", s)
+}
+
 type GatewayInfo struct {
+	Uid       string         `json:"uid" url:"uid"`
 	Name      string         `json:"name" url:"name"`
 	Namespace *NamespaceInfo `json:"namespace,omitempty" url:"namespace,omitempty"`
 
@@ -164,12 +292,13 @@ func (g *GatewayInfo) String() string {
 }
 
 type HttpRoute struct {
+	Uid         string            `json:"uid" url:"uid"`
 	Name        string            `json:"name" url:"name"`
 	Namespace   *NamespaceInfo    `json:"namespace,omitempty" url:"namespace,omitempty"`
+	Gateways    []*GatewayInfo    `json:"gateways,omitempty" url:"gateways,omitempty"`
+	Paths       []*RouteInfo      `json:"paths,omitempty" url:"paths,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty" url:"annotations,omitempty"`
 	Labels      map[string]string `json:"labels,omitempty" url:"labels,omitempty"`
-	Gateways    []*GatewayInfo    `json:"gateways,omitempty" url:"gateways,omitempty"`
-	Paths       []*PathInfo       `json:"paths,omitempty" url:"paths,omitempty"`
 
 	extraProperties map[string]interface{}
 	_rawJSON        json.RawMessage
@@ -210,9 +339,10 @@ func (h *HttpRoute) String() string {
 }
 
 type Ingress struct {
+	Uid         string            `json:"uid" url:"uid"`
 	Name        string            `json:"name" url:"name"`
 	Namespace   *NamespaceInfo    `json:"namespace,omitempty" url:"namespace,omitempty"`
-	Rules       []*RuleInfo       `json:"rules,omitempty" url:"rules,omitempty"`
+	Rules       []*RouteInfo      `json:"rules,omitempty" url:"rules,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty" url:"annotations,omitempty"`
 	Labels      map[string]string `json:"labels,omitempty" url:"labels,omitempty"`
 
@@ -255,11 +385,12 @@ func (i *Ingress) String() string {
 }
 
 type IngressReport struct {
-	HttpRoutes []*HttpRoute `json:"httpRoutes,omitempty" url:"httpRoutes,omitempty"`
-	Ingresses  []*Ingress   `json:"ingresses,omitempty" url:"ingresses,omitempty"`
-	ClusterUrl *string      `json:"clusterUrl,omitempty" url:"clusterUrl,omitempty"`
-	AuthType   AuthTypes    `json:"authType" url:"authType"`
-	Errors     []string     `json:"errors,omitempty" url:"errors,omitempty"`
+	HttpRoutes    []*HttpRoute    `json:"httpRoutes,omitempty" url:"httpRoutes,omitempty"`
+	Ingresses     []*Ingress      `json:"ingresses,omitempty" url:"ingresses,omitempty"`
+	LoadBalancers []*LoadBalancer `json:"loadBalancers,omitempty" url:"loadBalancers,omitempty"`
+	ClusterUrl    *string         `json:"clusterUrl,omitempty" url:"clusterUrl,omitempty"`
+	AuthType      AuthTypes       `json:"authType" url:"authType"`
+	Errors        []string        `json:"errors,omitempty" url:"errors,omitempty"`
 
 	extraProperties map[string]interface{}
 	_rawJSON        json.RawMessage
@@ -299,7 +430,53 @@ func (i *IngressReport) String() string {
 	return fmt.Sprintf("%#v", i)
 }
 
-type PathInfo struct {
+type LoadBalancer struct {
+	Uid         string            `json:"uid" url:"uid"`
+	Name        string            `json:"name" url:"name"`
+	Namespace   *NamespaceInfo    `json:"namespace,omitempty" url:"namespace,omitempty"`
+	Paths       []*RouteInfo      `json:"paths,omitempty" url:"paths,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty" url:"annotations,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty" url:"labels,omitempty"`
+
+	extraProperties map[string]interface{}
+	_rawJSON        json.RawMessage
+}
+
+func (l *LoadBalancer) GetExtraProperties() map[string]interface{} {
+	return l.extraProperties
+}
+
+func (l *LoadBalancer) UnmarshalJSON(data []byte) error {
+	type unmarshaler LoadBalancer
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*l = LoadBalancer(value)
+
+	extraProperties, err := core.ExtractExtraProperties(data, *l)
+	if err != nil {
+		return err
+	}
+	l.extraProperties = extraProperties
+
+	l._rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (l *LoadBalancer) String() string {
+	if len(l._rawJSON) > 0 {
+		if value, err := core.StringifyJSON(l._rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := core.StringifyJSON(l); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", l)
+}
+
+type RouteInfo struct {
 	Path    string       `json:"path" url:"path"`
 	Base    string       `json:"base" url:"base"`
 	Port    *string      `json:"port,omitempty" url:"port,omitempty"`
@@ -309,61 +486,17 @@ type PathInfo struct {
 	_rawJSON        json.RawMessage
 }
 
-func (p *PathInfo) GetExtraProperties() map[string]interface{} {
-	return p.extraProperties
-}
-
-func (p *PathInfo) UnmarshalJSON(data []byte) error {
-	type unmarshaler PathInfo
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*p = PathInfo(value)
-
-	extraProperties, err := core.ExtractExtraProperties(data, *p)
-	if err != nil {
-		return err
-	}
-	p.extraProperties = extraProperties
-
-	p._rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (p *PathInfo) String() string {
-	if len(p._rawJSON) > 0 {
-		if value, err := core.StringifyJSON(p._rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := core.StringifyJSON(p); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", p)
-}
-
-type RuleInfo struct {
-	Path        string  `json:"path" url:"path"`
-	Base        string  `json:"base" url:"base"`
-	Port        *string `json:"port,omitempty" url:"port,omitempty"`
-	ServiceName string  `json:"serviceName" url:"serviceName"`
-
-	extraProperties map[string]interface{}
-	_rawJSON        json.RawMessage
-}
-
-func (r *RuleInfo) GetExtraProperties() map[string]interface{} {
+func (r *RouteInfo) GetExtraProperties() map[string]interface{} {
 	return r.extraProperties
 }
 
-func (r *RuleInfo) UnmarshalJSON(data []byte) error {
-	type unmarshaler RuleInfo
+func (r *RouteInfo) UnmarshalJSON(data []byte) error {
+	type unmarshaler RouteInfo
 	var value unmarshaler
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
-	*r = RuleInfo(value)
+	*r = RouteInfo(value)
 
 	extraProperties, err := core.ExtractExtraProperties(data, *r)
 	if err != nil {
@@ -375,7 +508,7 @@ func (r *RuleInfo) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (r *RuleInfo) String() string {
+func (r *RouteInfo) String() string {
 	if len(r._rawJSON) > 0 {
 		if value, err := core.StringifyJSON(r._rawJSON); err == nil {
 			return value
@@ -387,49 +520,7 @@ func (r *RuleInfo) String() string {
 	return fmt.Sprintf("%#v", r)
 }
 
-type ServiceInfo struct {
-	Name      string         `json:"name" url:"name"`
-	Namespace *NamespaceInfo `json:"namespace,omitempty" url:"namespace,omitempty"`
-
-	extraProperties map[string]interface{}
-	_rawJSON        json.RawMessage
-}
-
-func (s *ServiceInfo) GetExtraProperties() map[string]interface{} {
-	return s.extraProperties
-}
-
-func (s *ServiceInfo) UnmarshalJSON(data []byte) error {
-	type unmarshaler ServiceInfo
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*s = ServiceInfo(value)
-
-	extraProperties, err := core.ExtractExtraProperties(data, *s)
-	if err != nil {
-		return err
-	}
-	s.extraProperties = extraProperties
-
-	s._rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (s *ServiceInfo) String() string {
-	if len(s._rawJSON) > 0 {
-		if value, err := core.StringifyJSON(s._rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := core.StringifyJSON(s); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", s)
-}
-
-type Address struct {
+type AddressInfo struct {
 	Type    string `json:"type" url:"type"`
 	Address string `json:"address" url:"address"`
 
@@ -437,17 +528,17 @@ type Address struct {
 	_rawJSON        json.RawMessage
 }
 
-func (a *Address) GetExtraProperties() map[string]interface{} {
+func (a *AddressInfo) GetExtraProperties() map[string]interface{} {
 	return a.extraProperties
 }
 
-func (a *Address) UnmarshalJSON(data []byte) error {
-	type unmarshaler Address
+func (a *AddressInfo) UnmarshalJSON(data []byte) error {
+	type unmarshaler AddressInfo
 	var value unmarshaler
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
-	*a = Address(value)
+	*a = AddressInfo(value)
 
 	extraProperties, err := core.ExtractExtraProperties(data, *a)
 	if err != nil {
@@ -459,7 +550,7 @@ func (a *Address) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (a *Address) String() string {
+func (a *AddressInfo) String() string {
 	if len(a._rawJSON) > 0 {
 		if value, err := core.StringifyJSON(a._rawJSON); err == nil {
 			return value
@@ -472,13 +563,15 @@ func (a *Address) String() string {
 }
 
 type Node struct {
-	Name         string     `json:"name" url:"name"`
-	Arch         *string    `json:"arch,omitempty" url:"arch,omitempty"`
-	Image        string     `json:"image" url:"image"`
-	Os           string     `json:"os" url:"os"`
-	Instancetype *string    `json:"instancetype,omitempty" url:"instancetype,omitempty"`
-	State        StateTypes `json:"state" url:"state"`
-	Addresses    []*Address `json:"addresses,omitempty" url:"addresses,omitempty"`
+	Uid          string         `json:"uid" url:"uid"`
+	Name         string         `json:"name" url:"name"`
+	Arch         string         `json:"arch" url:"arch"`
+	Image        string         `json:"image" url:"image"`
+	Os           string         `json:"os" url:"os"`
+	Version      *string        `json:"version,omitempty" url:"version,omitempty"`
+	State        StateTypes     `json:"state" url:"state"`
+	Instancetype *string        `json:"instancetype,omitempty" url:"instancetype,omitempty"`
+	Addresses    []*AddressInfo `json:"addresses,omitempty" url:"addresses,omitempty"`
 
 	extraProperties map[string]interface{}
 	_rawJSON        json.RawMessage
@@ -584,27 +677,27 @@ func (s StateTypes) Ptr() *StateTypes {
 	return &s
 }
 
-type Container struct {
-	Name            string           `json:"name" url:"name"`
-	Image           string           `json:"image" url:"image"`
-	Ports           []*ContainerPort `json:"ports,omitempty" url:"ports,omitempty"`
-	SecurityContext *SecurityContext `json:"securityContext,omitempty" url:"securityContext,omitempty"`
+type ContainerInfo struct {
+	Name            string               `json:"name" url:"name"`
+	Image           string               `json:"image" url:"image"`
+	Ports           []*ContainerPortInfo `json:"ports,omitempty" url:"ports,omitempty"`
+	SecurityContext *SecurityContextInfo `json:"securityContext,omitempty" url:"securityContext,omitempty"`
 
 	extraProperties map[string]interface{}
 	_rawJSON        json.RawMessage
 }
 
-func (c *Container) GetExtraProperties() map[string]interface{} {
+func (c *ContainerInfo) GetExtraProperties() map[string]interface{} {
 	return c.extraProperties
 }
 
-func (c *Container) UnmarshalJSON(data []byte) error {
-	type unmarshaler Container
+func (c *ContainerInfo) UnmarshalJSON(data []byte) error {
+	type unmarshaler ContainerInfo
 	var value unmarshaler
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
-	*c = Container(value)
+	*c = ContainerInfo(value)
 
 	extraProperties, err := core.ExtractExtraProperties(data, *c)
 	if err != nil {
@@ -616,7 +709,7 @@ func (c *Container) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (c *Container) String() string {
+func (c *ContainerInfo) String() string {
 	if len(c._rawJSON) > 0 {
 		if value, err := core.StringifyJSON(c._rawJSON); err == nil {
 			return value
@@ -628,7 +721,7 @@ func (c *Container) String() string {
 	return fmt.Sprintf("%#v", c)
 }
 
-type ContainerPort struct {
+type ContainerPortInfo struct {
 	Port     int           `json:"port" url:"port"`
 	Protocol ProtocolTypes `json:"protocol" url:"protocol"`
 
@@ -636,17 +729,17 @@ type ContainerPort struct {
 	_rawJSON        json.RawMessage
 }
 
-func (c *ContainerPort) GetExtraProperties() map[string]interface{} {
+func (c *ContainerPortInfo) GetExtraProperties() map[string]interface{} {
 	return c.extraProperties
 }
 
-func (c *ContainerPort) UnmarshalJSON(data []byte) error {
-	type unmarshaler ContainerPort
+func (c *ContainerPortInfo) UnmarshalJSON(data []byte) error {
+	type unmarshaler ContainerPortInfo
 	var value unmarshaler
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
-	*c = ContainerPort(value)
+	*c = ContainerPortInfo(value)
 
 	extraProperties, err := core.ExtractExtraProperties(data, *c)
 	if err != nil {
@@ -658,7 +751,7 @@ func (c *ContainerPort) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (c *ContainerPort) String() string {
+func (c *ContainerPortInfo) String() string {
 	if len(c._rawJSON) > 0 {
 		if value, err := core.StringifyJSON(c._rawJSON); err == nil {
 			return value
@@ -673,11 +766,11 @@ func (c *ContainerPort) String() string {
 type Pod struct {
 	Uid         string            `json:"uid" url:"uid"`
 	Name        string            `json:"name" url:"name"`
+	Version     string            `json:"version" url:"version"`
+	Status      *StatusInfo       `json:"status,omitempty" url:"status,omitempty"`
 	Namespace   *NamespaceInfo    `json:"namespace,omitempty" url:"namespace,omitempty"`
-	Version     *string           `json:"version,omitempty" url:"version,omitempty"`
-	Node        string            `json:"node" url:"node"`
-	Status      *Status           `json:"status,omitempty" url:"status,omitempty"`
-	Containers  []*Container      `json:"containers,omitempty" url:"containers,omitempty"`
+	Node        *NodeInfo         `json:"node,omitempty" url:"node,omitempty"`
+	Containers  []*ContainerInfo  `json:"containers,omitempty" url:"containers,omitempty"`
 	Labels      map[string]string `json:"labels,omitempty" url:"labels,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty" url:"annotations,omitempty"`
 
@@ -763,7 +856,7 @@ func (p *PodReport) String() string {
 	return fmt.Sprintf("%#v", p)
 }
 
-type SecurityContext struct {
+type SecurityContextInfo struct {
 	RunAsRoot                *bool `json:"runAsRoot,omitempty" url:"runAsRoot,omitempty"`
 	AllowPrivilegeEscalation *bool `json:"allowPrivilegeEscalation,omitempty" url:"allowPrivilegeEscalation,omitempty"`
 	ReadOnlyRootFilesystem   *bool `json:"readOnlyRootFilesystem,omitempty" url:"readOnlyRootFilesystem,omitempty"`
@@ -772,17 +865,17 @@ type SecurityContext struct {
 	_rawJSON        json.RawMessage
 }
 
-func (s *SecurityContext) GetExtraProperties() map[string]interface{} {
+func (s *SecurityContextInfo) GetExtraProperties() map[string]interface{} {
 	return s.extraProperties
 }
 
-func (s *SecurityContext) UnmarshalJSON(data []byte) error {
-	type unmarshaler SecurityContext
+func (s *SecurityContextInfo) UnmarshalJSON(data []byte) error {
+	type unmarshaler SecurityContextInfo
 	var value unmarshaler
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
-	*s = SecurityContext(value)
+	*s = SecurityContextInfo(value)
 
 	extraProperties, err := core.ExtractExtraProperties(data, *s)
 	if err != nil {
@@ -794,7 +887,7 @@ func (s *SecurityContext) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (s *SecurityContext) String() string {
+func (s *SecurityContextInfo) String() string {
 	if len(s._rawJSON) > 0 {
 		if value, err := core.StringifyJSON(s._rawJSON); err == nil {
 			return value
@@ -806,7 +899,7 @@ func (s *SecurityContext) String() string {
 	return fmt.Sprintf("%#v", s)
 }
 
-type Status struct {
+type StatusInfo struct {
 	Status StatusTypes `json:"status" url:"status"`
 	PodIp  *string     `json:"podIp,omitempty" url:"podIp,omitempty"`
 	HostIp *string     `json:"hostIp,omitempty" url:"hostIp,omitempty"`
@@ -815,17 +908,17 @@ type Status struct {
 	_rawJSON        json.RawMessage
 }
 
-func (s *Status) GetExtraProperties() map[string]interface{} {
+func (s *StatusInfo) GetExtraProperties() map[string]interface{} {
 	return s.extraProperties
 }
 
-func (s *Status) UnmarshalJSON(data []byte) error {
-	type unmarshaler Status
+func (s *StatusInfo) UnmarshalJSON(data []byte) error {
+	type unmarshaler StatusInfo
 	var value unmarshaler
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
-	*s = Status(value)
+	*s = StatusInfo(value)
 
 	extraProperties, err := core.ExtractExtraProperties(data, *s)
 	if err != nil {
@@ -837,7 +930,7 @@ func (s *Status) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (s *Status) String() string {
+func (s *StatusInfo) String() string {
 	if len(s._rawJSON) > 0 {
 		if value, err := core.StringifyJSON(s._rawJSON); err == nil {
 			return value
@@ -881,13 +974,14 @@ func (s StatusTypes) Ptr() *StatusTypes {
 }
 
 type Service struct {
+	Uid         string            `json:"uid" url:"uid"`
 	Name        string            `json:"name" url:"name"`
 	Namespace   *NamespaceInfo    `json:"namespace,omitempty" url:"namespace,omitempty"`
 	Type        string            `json:"type" url:"type"`
-	Pods        []string          `json:"pods,omitempty" url:"pods,omitempty"`
+	Pods        []*PodInfo        `json:"pods,omitempty" url:"pods,omitempty"`
+	Selectors   map[string]string `json:"selectors,omitempty" url:"selectors,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty" url:"annotations,omitempty"`
 	Labels      map[string]string `json:"labels,omitempty" url:"labels,omitempty"`
-	Selectors   map[string]string `json:"selectors,omitempty" url:"selectors,omitempty"`
 
 	extraProperties map[string]interface{}
 	_rawJSON        json.RawMessage

@@ -1,8 +1,4 @@
 types:
-  NamespaceInfo:
-    properties:
-      name: string
-      uid: string
   ProtocolTypes:
     enum:
       - HTTP
@@ -20,3 +16,20 @@ types:
       - TOKEN_WITHOUT_CA_CERT
       - UNAUTHENTICATED
       - UNKNOWN
+  NamespaceInfo:
+    properties:
+      uid: string
+      name: string
+  NodeInfo:
+    properties:
+      uid: string
+      name: string
+  PodInfo:
+    properties:
+      uid: string
+      name: string
+  ServiceInfo:
+    properties:
+      uid: string
+      name: string
+      namespace: NamespaceInfo
