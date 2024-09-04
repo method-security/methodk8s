@@ -35,7 +35,23 @@ func EnumeratePods(ctx context.Context, k8sconfig *rest.Config, authType methodk
 			errors = append(errors, err.Error())
 			continue
 		}
-		// Containers
+
+		// Fetch Node info
+		nodeName := pod.Spec.NodeName
+		nodeInfo := methodk8s.NodeInfo{}
+		if nodeName != "" {
+			node, err := clientset.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+			if err != nil {
+				errors = append(errors, err.Error())
+			} else {
+				nodeInfo = methodk8s.NodeInfo{
+					Uid:  string(node.GetUID()),
+					Name: node.GetName(),
+				}
+			}
+		}
+
+		// Fetch Container info
 		containers := []*methodk8s.ContainerInfo{}
 		for _, container := range pod.Spec.Containers {
 			ports := []*methodk8s.ContainerPortInfo{}
@@ -70,7 +86,7 @@ func EnumeratePods(ctx context.Context, k8sconfig *rest.Config, authType methodk
 			containers = append(containers, &containerInfo)
 		}
 
-		// Pod
+		// Pod info
 		status, err := methodk8s.NewStatusTypesFromString(string(pod.Status.Phase))
 		if err != nil {
 			errors = append(errors, err.Error())
@@ -86,13 +102,14 @@ func EnumeratePods(ctx context.Context, k8sconfig *rest.Config, authType methodk
 			Name: namespace.GetName(),
 			Uid:  string(namespace.GetUID()),
 		}
+
 		podInfo := methodk8s.Pod{
 			Uid:         string(pod.GetUID()),
 			Name:        pod.GetName(),
 			Version:     version,
 			Status:      &statusInfo,
 			Namespace:   &namespaceInfo,
-			NodeUid:     &pod.Spec.NodeName,
+			Node:        &nodeInfo,
 			Containers:  containers,
 			Annotations: pod.Annotations,
 			Labels:      pod.Labels,

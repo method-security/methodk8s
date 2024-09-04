@@ -35,7 +35,7 @@ types:
       version: string
       status: StatusInfo
       namespace: common.NamespaceInfo
-      nodeUid: optional<string>
+      node: optional<common.NodeInfo>
       containers: list<ContainerInfo>
       labels: optional<map<string, string>>
       annotations: optional<map<string, string>>

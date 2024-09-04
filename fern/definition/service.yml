@@ -3,6 +3,7 @@ imports:
 types:
   Service: 
     properties:
+      uid: string
       name: string
       namespace: common.NamespaceInfo
       type: string

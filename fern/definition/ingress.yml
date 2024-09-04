@@ -1,48 +1,42 @@
 imports:
   common: ./common.yml
 types:
-  RuleInfo:
+  RouteInfo:
     properties:
       path: string
       base: string
       port: optional<string>
-      serviceName: string
-  Ingress:
-    properties:
-      name: string
-      namespace: common.NamespaceInfo
-      rules: optional<list<RuleInfo>>
-      annotations: optional<map<string, string>>
-      labels: optional<map<string, string>>
-  ServiceInfo:
-    properties:
-      name: string
-      namespace: common.NamespaceInfo
-  PathInfo:
-    properties:
-      path: string
-      base: string
-      port: optional<string>
-      service: ServiceInfo
+      service: common.ServiceInfo
   GatewayInfo:
     properties:
+      uid: string
       name: string
       namespace: common.NamespaceInfo
   HttpRoute:
     properties:
+      uid: string
       name: string
       namespace: common.NamespaceInfo
+      gateways: optional<list<GatewayInfo>>
+      paths: optional<list<RouteInfo>>
       annotations: optional<map<string, string>>
       labels: optional<map<string, string>>
-      gateways: optional<list<GatewayInfo>>
-      paths: optional<list<PathInfo>>
+  Ingress:
+    properties:
+      uid: string
+      name: string
+      namespace: common.NamespaceInfo
+      rules: optional<list<RouteInfo>>
+      annotations: optional<map<string, string>>
+      labels: optional<map<string, string>>
   LoadBalancer:
    properties:
+      uid: string
       name: string
       namespace: common.NamespaceInfo
+      paths: optional<list<RouteInfo>>
       annotations: optional<map<string, string>>
       labels: optional<map<string, string>>
-      paths: optional<list<PathInfo>>
   IngressReport:
     properties:
       httpRoutes: optional<list<HttpRoute>>

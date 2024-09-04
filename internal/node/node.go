@@ -23,7 +23,7 @@ func EnumerateNodes(ctx context.Context, k8sconfig *rest.Config, authType method
 		return &methodk8s.NodeReport{}, err
 	}
 
-	// Fetch all Pods
+	// Fetch all Nodes
 	nodesList, err := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		errors = append(errors, err.Error())
@@ -48,6 +48,7 @@ func EnumerateNodes(ctx context.Context, k8sconfig *rest.Config, authType method
 
 		image, version := splitOnFirstNumber(node.Status.NodeInfo.OSImage)
 		nodeInfo := methodk8s.Node{
+			Uid:          string(node.UID),
 			Name:         node.GetName(),
 			Arch:         node.Status.NodeInfo.Architecture,
 			Os:           node.Status.NodeInfo.OperatingSystem,

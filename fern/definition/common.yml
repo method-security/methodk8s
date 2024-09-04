@@ -18,9 +18,18 @@ types:
       - UNKNOWN
   NamespaceInfo:
     properties:
-      name: string
       uid: string
+      name: string
+  NodeInfo:
+    properties:
+      uid: string
+      name: string
   PodInfo:
     properties:
       uid: string
-      nodeUid: string
+      name: string
+  ServiceInfo:
+    properties:
+      uid: string
+      name: string
+      namespace: NamespaceInfo

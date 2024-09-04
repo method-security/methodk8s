@@ -11,6 +11,7 @@ types:
       address: string
   Node:
     properties:
+      uid: string
       name: string
       arch: string
       image: string
