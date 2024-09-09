@@ -26,6 +26,11 @@ func (a *MethodK8s) InitServiceAccountCommand() {
 		Short: "Service account credentials",
 		Long:  `Use this command to print the Service Account credentials`,
 		Run: func(cmd *cobra.Command, args []string) {
+			// Init Cmd Failed
+			if a.OutputSignal.ErrorMessage != nil {
+				return
+			}
+
 			namespace, err := cmd.Flags().GetString("namespace")
 			log := svc1log.FromContext(cmd.Context())
 			if err != nil {
@@ -54,6 +59,11 @@ func (a *MethodK8s) InitServiceAccountCommand() {
 		Short: "Create a service account in your k8s cluster",
 		Long:  `Create a service account in your k8s cluster`,
 		Run: func(cmd *cobra.Command, args []string) {
+			// Init Cmd Failed
+			if a.OutputSignal.ErrorMessage != nil {
+				return
+			}
+
 			log := svc1log.FromContext(cmd.Context())
 			run, err := cmd.Flags().GetBool("run")
 			if err != nil {

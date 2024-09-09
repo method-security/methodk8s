@@ -82,7 +82,10 @@ func (a *MethodK8s) InitRootCommand() {
 
 			K8sConfig, AuthType, err := GetK8sConfig(a)
 			if err != nil {
-				return err
+				errorMessage := err.Error()
+				a.OutputSignal.ErrorMessage = &errorMessage
+				a.OutputSignal.Status = 1
+				return nil
 			}
 			a.K8sConfig = K8sConfig
 			a.AuthType = AuthType
