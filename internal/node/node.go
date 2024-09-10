@@ -36,11 +36,13 @@ func EnumerateNodes(ctx context.Context, k8sconfig *rest.Config, authType method
 		addresses := []*methodk8s.AddressInfo{}
 		for _, addr := range node.Status.Addresses {
 			addressType := string(addr.Type)
-			addressInfo := methodk8s.AddressInfo{
-				Type:    addressType,
-				Address: addr.Address,
+			if addressType != "Hostname" {
+				addressInfo := methodk8s.AddressInfo{
+					Type:    addressType,
+					Address: addr.Address,
+				}
+				addresses = append(addresses, &addressInfo)
 			}
-			addresses = append(addresses, &addressInfo)
 		}
 
 		instanceType := node.Labels["node.kubernetes.io/instance-type"]
