@@ -17,6 +17,11 @@ func (a *MethodK8s) InitPodCommand() {
 		Short: "Enumerate Pods",
 		Long:  `Enumerate Pods`,
 		Run: func(cmd *cobra.Command, args []string) {
+			// Init Cmd Failed
+			if a.OutputSignal.ErrorMessage != nil {
+				return
+			}
+
 			report, err := pod.EnumeratePods(cmd.Context(), a.K8sConfig, a.AuthType)
 			if err != nil {
 				errorMessage := err.Error()
@@ -24,6 +29,7 @@ func (a *MethodK8s) InitPodCommand() {
 				a.OutputSignal.Status = 1
 			}
 			a.OutputSignal.Content = report
+
 		},
 	}
 

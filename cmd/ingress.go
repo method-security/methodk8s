@@ -17,6 +17,10 @@ func (a *MethodK8s) InitIngressCommand() {
 		Short: "Enumerate Ingresses",
 		Long:  `Enumerate Ingresses`,
 		Run: func(cmd *cobra.Command, args []string) {
+			// Init Cmd Failed
+			if a.OutputSignal.ErrorMessage != nil {
+				return
+			}
 
 			types, err := cmd.Flags().GetStringSlice("type")
 			if err != nil {

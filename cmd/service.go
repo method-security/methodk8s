@@ -17,6 +17,11 @@ func (a *MethodK8s) InitServiceCommand() {
 		Short: "Enumerate Services",
 		Long:  `Enumerate Services`,
 		Run: func(cmd *cobra.Command, args []string) {
+			// Init Cmd Failed
+			if a.OutputSignal.ErrorMessage != nil {
+				return
+			}
+
 			report, err := service.EnumerateServices(cmd.Context(), a.K8sConfig, a.AuthType)
 			if err != nil {
 				errorMessage := err.Error()
