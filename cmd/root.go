@@ -29,6 +29,7 @@ type MethodK8s struct {
 }
 
 func NewMethodK8s(version string) *MethodK8s {
+	startedAt := datetime.DateTime(time.Now())
 	methodK8s := MethodK8s{
 		version: version,
 		RootFlags: config.RootFlags{
@@ -46,7 +47,7 @@ func NewMethodK8s(version string) *MethodK8s {
 			},
 		},
 		OutputConfig: writer.NewOutputConfig(nil, writer.NewFormat(writer.SIGNAL)),
-		OutputSignal: signal.NewSignal(nil, datetime.DateTime(time.Now()), nil, 0, nil),
+		OutputSignal: signal.NewSignal(nil, &startedAt, nil, 0, nil),
 		K8sConfig:    nil,
 	}
 	return &methodK8s
@@ -98,7 +99,7 @@ func (a *MethodK8s) InitRootCommand() {
 			return writer.Write(
 				a.OutputSignal.Content,
 				a.OutputConfig,
-				a.OutputSignal.StartedAt,
+				&a.OutputSignal.StartedAt,
 				a.OutputSignal.CompletedAt,
 				a.OutputSignal.Status,
 				a.OutputSignal.ErrorMessage,
