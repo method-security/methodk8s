@@ -1,56 +1,27 @@
 version: 2
 
 project_name: methodk8s
+
 builds:
-  - id: build-linux
-    main: .
-    binary: methodk8s
-    ldflags:
-      - -s -w
-      - "-extldflags '-static'"
-      - -X github.com/method-security/methodk8s/main.version={{.Version}}
-    env:
-      - CGO_ENABLED=0
+  - id: prebuilt
+    builder: prebuilt
     goos:
       - linux
-    goarch:
-      - "386"
-      - arm
-      - amd64
-      - arm64
-    goarm:
-      - "7"
-  - id: build-macos
-    main: .
-    binary: methodk8s
-    ldflags:
-      - -s -w
-      - "-extldflags '-static'"
-      - -X github.com/method-security/methodk8s/main.version={{.Version}}
-    env:
-      - CGO_ENABLED=0
-    goos:
       - darwin
-    goarch:
-      - amd64
-      - arm64
-    goarm:
-      - "7"
-  - id: build-windows
-    main: .
-    binary: methodk8s
-    ldflags:
-      - -s -w
-      - "-extldflags '-static'"
-      - -X github.com/method-security/methodk8s/main.version={{.Version}}
-    env:
-      - CGO_ENABLED=0
-    goos:
       - windows
     goarch:
       - amd64
-    goarm:
-      - "7"
+      - arm64
+    goamd64:
+      - v1
+    ignore:
+      - goos: windows
+        goarch: arm64
+      - goos: darwin
+        goarch: amd64
+    prebuilt:
+      path: output/build-{{ .Os }}_{{ .Arch }}/methodk8s{{ if eq .Os "windows" }}.exe{{ end }}
+    binary: methodk8s
 
 archives:
   - id: archive
@@ -72,20 +43,23 @@ archives:
       - goos: windows
         format: zip
 
+checksum:
+  name_template: "{{ .ProjectName }}_checksums.txt"
+
 dockers:
   - image_templates:
-      - "docker.io/methodsecurity/methodk8s:{{ .Version }}-amd64"
-      - "docker.io/methodsecurity/methodk8s:latest-amd64"
       - "ghcr.io/method-security/methodk8s:{{ .Version }}-amd64"
       - "ghcr.io/method-security/methodk8s:latest-amd64"
+      - "docker.io/methodsecurity/methodk8s:{{ .Version }}-amd64"
+      - "docker.io/methodsecurity/methodk8s:latest-amd64"
     use: buildx
     goos: linux
     goarch: amd64
     ids:
-      - build-linux
+      - prebuilt
     build_flag_templates:
       - "--label=org.opencontainers.image.title={{ .ProjectName }}"
-      - "--label=org.opencontainers.image.description=An on-rails K8s enumeration tool"
+      - "--label=org.opencontainers.image.description=An on-rails network enumeration tool"
       - "--label=org.opencontainers.image.vendor=Method Security"
       - "--label=org.opencontainers.image.version={{ .Version }}"
       - "--label=org.opencontainers.image.created={{ .Date }}"
@@ -94,19 +68,20 @@ dockers:
       - "--label=org.opencontainers.image.url=https://method.security"
       - "--label=org.opencontainers.image.documentation=https://github.com/method-security/methodk8s"
       - "--platform=linux/amd64"
+
   - image_templates:
-      - "docker.io/methodsecurity/methodk8s:{{ .Version }}-arm64"
-      - "docker.io/methodsecurity/methodk8s:latest-arm64"
       - "ghcr.io/method-security/methodk8s:{{ .Version }}-arm64"
       - "ghcr.io/method-security/methodk8s:latest-arm64"
+      - "docker.io/methodsecurity/methodk8s:{{ .Version }}-arm64"
+      - "docker.io/methodsecurity/methodk8s:latest-arm64"
     use: buildx
     goos: linux
     goarch: arm64
     ids:
-      - build-linux
+      - prebuilt
     build_flag_templates:
       - "--label=org.opencontainers.image.title={{ .ProjectName }}"
-      - "--label=org.opencontainers.image.description=An on-rails K8s enumeration tool"
+      - "--label=org.opencontainers.image.description=An on-rails network enumeration tool"
       - "--label=org.opencontainers.image.vendor=Method Security"
       - "--label=org.opencontainers.image.version={{ .Version }}"
       - "--label=org.opencontainers.image.created={{ .Date }}"
@@ -127,18 +102,12 @@ docker_manifests:
     - 'ghcr.io/method-security/methodk8s:{{ .Version }}-arm64'
   - name_template: 'methodsecurity/methodk8s:{{ .Version }}'
     image_templates:
-    - 'methodsecurity/methodk8s:{{ .Version }}-amd64'
-    - 'methodsecurity/methodk8s:{{ .Version }}-arm64'
+    - 'docker.io/methodsecurity/methodk8s:{{ .Version }}-amd64'
+    - 'docker.io/methodsecurity/methodk8s:{{ .Version }}-arm64'
   - name_template: 'methodsecurity/methodk8s:latest'
     image_templates:
-    - 'methodsecurity/methodk8s:{{ .Version }}-amd64'
-    - 'methodsecurity/methodk8s:{{ .Version }}-arm64'
-
-source:
-  enabled: true
-
-checksum:
-  name_template: "{{ .ProjectName }}_checksums.txt"
+    - 'docker.io/methodsecurity/methodk8s:{{ .Version }}-amd64'
+    - 'docker.io/methodsecurity/methodk8s:{{ .Version }}-arm64'
 
 sboms:
   - artifacts: archive
@@ -148,7 +117,7 @@ sboms:
 signs:
   - cmd: cosign
     env:
-    - COSIGN_EXPERIMENTAL=1
+      - COSIGN_EXPERIMENTAL=1
     signature: "${artifact}.sig"
     certificate: '${artifact}.pem'
     args:
@@ -164,10 +133,10 @@ signs:
 docker_signs:
   - cmd: cosign
     env:
-    - COSIGN_EXPERIMENTAL=1
+      - COSIGN_EXPERIMENTAL=1
     artifacts: manifests
     output: true
     args:
-    - "sign"
-    - "${artifact}"
-    - "--yes"
+      - "sign"
+      - "${artifact}"
+      - "--yes"
